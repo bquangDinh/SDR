@@ -1,0 +1,9 @@
+* text=auto
+*.cpp text
+*.h text
+*.c text
+*.qml text
+*.txt text
+*.ttf binary
+*.otf binary
+*.png binary
