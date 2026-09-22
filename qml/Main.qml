@@ -1,6 +1,7 @@
 import QtQuick
 import QtQuick.Layouts
 import QtQuick.Controls.Basic
+import QtGraphs
 import sdr_qt
 
 ApplicationWindow {
@@ -19,11 +20,11 @@ ApplicationWindow {
     font.family: figtreeFont.name
     font.pixelSize: 14
 
-    // SdrBackend {
-    //     id: sdr
-    //     onErrorOccurred: (msg) => statusText.text = msg
-    //     onSpectrum: (bins) => console.log("QML got spectrum, bins:", bins.length)
-    // }
+    SdrBackend {
+        id: sdr
+        // onErrorOccurred: (msg) => statusText.text = msg
+        // onSpectrum: (bins) => console.log("QML got spectrum, bins:", bins.length)
+    }
 
     // Row {
     //     spacing: 8
@@ -84,6 +85,80 @@ ApplicationWindow {
                 Layout.preferredHeight: 44
                 color: "#F25A38"
                 radius: 8
+
+                RowLayout {
+                    spacing: 20
+                    anchors.fill: parent
+
+                    Label {
+                        text: "Settings"
+                        font.bold: true
+                        font.pixelSize: 16
+                        color: "#EBECEE"
+
+                        Layout.leftMargin: 16
+                    }
+
+                    Label {
+                        text: "View"
+                        font.bold: true
+                        font.pixelSize: 16
+                        color: "#EBECEE"
+                    }
+
+                    Label {
+                        text: "Tools"
+                        font.bold: true
+                        font.pixelSize: 16
+                        color: "#EBECEE"
+                    }
+
+                    Label {
+                        text: "Help"
+                        font.bold: true
+                        font.pixelSize: 16
+                        color: "#EBECEE"
+                    }
+
+                    Rectangle {
+                        color: "#EBECEE"
+                        Layout.preferredWidth: 2
+                        Layout.maximumWidth: 2
+                        Layout.preferredHeight: 20
+                        Layout.maximumHeight: 20
+                    }
+
+                    SdrPlayBtn {
+                        playing: sdr.running
+                        onClicked: sdr.running ? sdr.stop() : sdr.start()
+                    }
+
+                    Label {
+                        text: sdr.centerFreq.toLocaleString(Qt.locale("en_US"), 'f', 0) + " Hz"
+                        font.bold: true
+                        font.pixelSize: 24
+                        color: "#EBECEE"
+                    }
+
+                    Button {
+                        text: "Up"
+                        onClicked: sdr.setCenterFreq(sdr.centerFreq + 1000)
+                    }
+
+                    Button {
+                        text: "Down"
+                        onClicked: sdr.setCenterFreq(sdr.centerFreq - 1000)
+                    }
+
+                    Item {
+                        Layout.fillWidth: true
+                    }
+
+                    // Button {
+                    //     text: sdr.running ? "Stop" : "Start"
+                    //     onClicked: sdr.running ? sdr.stop() : sdr.start()
+                    // }
+                }
             }
         }
 
@@ -517,6 +592,51 @@ ApplicationWindow {
                             Layout.maximumHeight: 300
                             color: "#CCD0D4"
                             radius: 8
+
+                            ColumnLayout {
+                                anchors.fill: parent
+
+                                GraphsView {
+                                    id: graph
+                                    Layout.fillWidth: true
+                                    Layout.fillHeight: true
+
+                                    axisX: ValueAxis {
+                                        min: 160.8
+                                        max: 163.3
+                                        titleText: "Frequency (MHz)"
+                                    }
+
+                                    axisY: ValueAxis {
+                                        min: -100
+                                        max: 0
+                                        titleText: "dBFS"
+                                    }
+
+                                    LineSeries {
+                                        id: spectrumSeries
+                                        name: "Spectrum"
+                                        color: "#89b4fa"
+                                        width: 2
+                                    }
+                                }
+
+                                Connections {
+                                    target: sdr
+                                    function onSpectrum(bins) {
+                                        spectrumSeries.clear()
+
+                                        const n = bins.length
+                                        const fMin = graph.axisX.min
+                                        const fMax = graph.axisX.max
+
+                                        for (let i = 0; i < n; ++i) {
+                                            const freq = fMin + (fMax - fMin) * i / (n - 1)
+                                            spectrumSeries.append(freq, bins[i])
+                                        }
+                                    }
+                                }
+                            }
                         }
 
                         Rectangle {

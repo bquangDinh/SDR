@@ -4,7 +4,7 @@ project(sdr_qt VERSION 0.1 LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-find_package(Qt6 REQUIRED COMPONENTS Quick)
+find_package(Qt6 REQUIRED COMPONENTS Quick Graphs)
 
 qt_standard_project_setup(REQUIRES 6.10)
 
@@ -39,6 +39,7 @@ qt_add_qml_module(appsdr_qt
         qml/components/SdrCheckBox.qml
         qml/components/SdrSlider.qml
         qml/components/SdrRadioBox.qml
+        qml/components/SdrPlayBtn.qml
         SOURCES src/core/sdr_backend.h
         SOURCES src/core/sdr_backend.cpp
     RESOURCES
@@ -59,6 +60,7 @@ set_target_properties(appsdr_qt PROPERTIES
 target_link_libraries(appsdr_qt PRIVATE
     rtlsdr
     Qt6::Quick
+    Qt6::Graphs
 )
 
 install(TARGETS appsdr_qt

@@ -3,14 +3,26 @@
 
 static rtlsdr_dev_t* dev = NULL;
 
+int sdr_set_center_freq(uint32_t centerFreq) {
+    if (dev == NULL) return -1;
+
+    return rtlsdr_set_center_freq(dev, centerFreq);
+}
+
+int sdr_set_rf_gain(int rfGain) {
+    if (dev == NULL) return -1;
+
+    return rtlsdr_set_tuner_gain_mode(dev, rfGain);
+}
+
 int sdr_init() {
     if (rtlsdr_open(&dev, 0) < 0) {
         return -1;
     }
 
     rtlsdr_set_sample_rate(dev, 2048000);
-    rtlsdr_set_center_freq(dev, 100000000);   // pick any real frequency, e.g. 100 MHz
-    rtlsdr_set_tuner_gain_mode(dev, 0);       // 0 = auto gain
+    // rtlsdr_set_center_freq(dev, 162475000);   // pick any real frequency, e.g. 162 MHz
+    // rtlsdr_set_tuner_gain_mode(dev, 0);       // 0 = auto gain
 
     if (rtlsdr_reset_buffer(dev) < 0) {
 
