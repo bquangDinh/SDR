@@ -3,20 +3,9 @@
 #include <vector>
 #include <cmath>
 
-void RtlThread::setCenterFreq(quint32 freq) {
-    centerFreq_ = freq;
-
-    sdr_set_center_freq(freq);
-}
-
-void RtlThread::setRfGain(int rfGain) {
-    rfGain_ = rfGain;
-
-    sdr_set_rf_gain(rfGain);
-}
-
 void RtlThread::sample(const char *buf, int n, int binsCount, std::complex<float> *outBuf) {
     const int pairs = n / 2;
+
     if (pairs < binsCount) return;
 
     const auto *u = reinterpret_cast<const unsigned char *>(buf); // 0 - 255

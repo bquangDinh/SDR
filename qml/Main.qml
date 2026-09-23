@@ -223,8 +223,12 @@ ApplicationWindow {
                                     }
 
                                     Select {
+                                        id: sourceSelect
                                         Layout.fillWidth: true
-                                        model: ["RTL-SDR", "AirSpy"]
+                                        model: sdr.sourceOptions
+                                        textRole: "text"
+                                        valueRole: "value"
+                                        onActivated: sdr.setSource(currentValue)
                                     }
                                 }
 
@@ -242,9 +246,22 @@ ApplicationWindow {
                                         font.pixelSize: 14
                                     }
 
-                                    Select {
+                                    RowLayout {
                                         Layout.fillWidth: true
-                                        model: ["Generic RTL2832U OEM (0)", "AirSpy"]
+
+                                        Select {
+                                            id: deviceSelect
+                                            Layout.fillWidth: true
+                                            model: sdr.deviceList
+                                            textRole: "text"
+                                            valueRole: "value"
+                                            onActivated: sdr.setDevice(currentValue)
+                                        }
+
+                                        Button {
+                                            text: "Refresh"
+                                            onClicked: sdr.refreshDevices()
+                                        }
                                     }
                                 }
 
@@ -263,8 +280,12 @@ ApplicationWindow {
                                     }
 
                                     Select {
+                                        id: sampleRateSelect
                                         Layout.fillWidth: true
-                                        model: ["3.2 MSPS", "2.8 MSPS"]
+                                        model: sdr.sampleRateOptions
+                                        textRole: "text"
+                                        valueRole: "value"
+                                        onActivated: sdr.setSampleRate(currentValue)
                                     }
                                 }
 
@@ -283,8 +304,12 @@ ApplicationWindow {
                                     }
 
                                     Select {
+                                        id: samplingModeSelect
                                         Layout.fillWidth: true
-                                        model: ["Quadrature Sampling", "2.8 MSPS"]
+                                        model: sdr.sampleModeOptions
+                                        textRole: "text"
+                                        valueRole: "value"
+                                        onActivated: sdr.setSamplingMode(currentValue);
                                     }
                                 }
 
@@ -300,10 +325,11 @@ ApplicationWindow {
                                     }
 
                                     SdrCheckBox {
-                                        text: "Offset Timing"
+                                        text: "Offset Tuning"
                                     }
 
                                     SdrCheckBox {
+                                        id: tunerAGC
                                         text: "Tuner AGC"
                                     }
 
@@ -342,7 +368,9 @@ ApplicationWindow {
                                         from: 0
                                         to: 50
                                         stepSize: 1
-                                        value: 20
+                                        enabled: !tunerAGC.checked
+                                        value: 0
+                                        onMoved: sdr.setRfGain(value)
                                     }
                                 }
 

@@ -17,14 +17,15 @@ qt_add_executable(appsdr_qt
     src/main.cpp
     src/core/rtl_thread.cpp
     src/core/rtl_thread.h
-    src/core/sdr_device.cpp
-    src/core/sdr_device.h
+    src/core/devices/sdr_device.cpp
+    src/core/devices/sdr_device.h
 )
 
 target_include_directories(appsdr_qt PRIVATE
     ${CMAKE_SOURCE_DIR}/include
     ${CMAKE_SOURCE_DIR}/src
     ${CMAKE_SOURCE_DIR}/src/core
+    ${CMAKE_SOURCE_DIR}/src/core/devices
 )
 
 target_link_directories(appsdr_qt PRIVATE
@@ -40,8 +41,15 @@ qt_add_qml_module(appsdr_qt
         qml/components/SdrSlider.qml
         qml/components/SdrRadioBox.qml
         qml/components/SdrPlayBtn.qml
-        SOURCES src/core/sdr_backend.h
-        SOURCES src/core/sdr_backend.cpp
+    SOURCES
+        src/core/sdr_backend.h
+        src/core/sdr_backend.cpp
+        src/core/devices/rtl_sdr_device.h
+        src/core/devices/rtl_sdr_device.cpp
+        src/core/sdr_device_manager.h
+        src/core/sdr_device_manager.cpp
+        src/core/Constants.h
+        src/core/singleton.h
     RESOURCES
         fonts/Figtree-VariableFont_wght.ttf
 )

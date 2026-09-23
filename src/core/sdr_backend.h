@@ -7,95 +7,190 @@
 #include <QByteArray>
 #include <QList>
 #include <QDebug>
+#include <QVariant>
 
 #include "core/rtl_thread.h"
+#include "core/Constants.h"
+#include "core/sdr_device_manager.h"
 
 class SdrBackend : public QObject {
     Q_OBJECT
     QML_ELEMENT
+
     Q_PROPERTY(bool running READ running NOTIFY runningChanged)
+
+    Q_PROPERTY(QVariantList sourceOptions READ sourceOptions CONSTANT)
+    Q_PROPERTY(QVariantList deviceList READ deviceList NOTIFY deviceListChanged)
+
     Q_PROPERTY(quint32 centerFreq READ centerFreq WRITE setCenterFreq NOTIFY centerFreqChanged)
     Q_PROPERTY(int rfGain READ rfGain WRITE setRfGain NOTIFY rfGainChanged)
+    Q_PROPERTY(QVariantList sampleRateOptions READ sampleRateOptions CONSTANT)
+    Q_PROPERTY(int correctionPPM READ correctionPPM WRITE setCorrectionPPM NOTIFY correctionPPMChanged)
+    Q_PROPERTY(qint32 shiftAmount READ shiftAmount WRITE setShiftAmount NOTIFY shiftAmountChanged)
+    Q_PROPERTY(QVariantList sampleModeOptions READ sampleModeOptions CONSTANT)
+    Q_PROPERTY(bool rtlagc READ rtlagc WRITE setRtlAGC NOTIFY rtlagcChanged)
+    Q_PROPERTY(bool offsetTuning READ offsetTuning WRITE setOffsetTuning NOTIFY offsetTuningChanged)
+    Q_PROPERTY(bool tunerAGC READ tunerAGC WRITE setTunerAGC NOTIFY tunerAGCChanged)
+    Q_PROPERTY(bool biasTee READ biasTee WRITE setBiasTee NOTIFY biasTeeChanged)
+    Q_PROPERTY(bool shift READ shift WRITE setShift NOTIFY shiftChanged)
+    Q_PROPERTY(bool correctIQ READ correctIQ WRITE setCorrectIQ NOTIFY correctIQChanged)
+    Q_PROPERTY(bool invertSpectrum READ invertSpectrum WRITE setInvertSpectrum NOTIFY invertSpectrumChanged)
+
 public:
+    QVariantList sourceOptions() const {
+        static const QVariantList options = {
+            QVariantMap{{"text", "RTL-SDR USB"},      {"value", RTL_SDR_USB}}
+        };
+
+        return options;
+    }
+
+    QVariantList sampleRateOptions() const {
+        static const QVariantList options = {
+            QVariantMap{{"text", "3.2 MSPS"},      {"value", Constants::SampleRate::RATE_3_2_MSPS}},
+            QVariantMap{{"text", "2.8 MSPS"},      {"value", Constants::SampleRate::RATE_2_8_MSPS}},
+            QVariantMap{{"text", "2.56 MSPS"},     {"value", Constants::SampleRate::RATE_2_56_MSPS}},
+            QVariantMap{{"text", "2.4 MSPS"},      {"value", Constants::SampleRate::RATE_2_4_MSPS}},
+            QVariantMap{{"text", "2.048 MSPS"},    {"value", Constants::SampleRate::RATE_2_048_MSPS}},
+            QVariantMap{{"text", "1.92 MSPS"},     {"value", Constants::SampleRate::RATE_1_92_MSPS}},
+            QVariantMap{{"text", "1.8 MSPS"},      {"value", Constants::SampleRate::RATE_1_8_MSPS}},
+            QVariantMap{{"text", "1.4 MSPS"},      {"value", Constants::SampleRate::RATE_1_4_MSPS}},
+            QVariantMap{{"text", "1.024 MSPS"},    {"value", Constants::SampleRate::RATE_1_024_MSPS}},
+            QVariantMap{{"text", "0.900001 MSPS"}, {"value", Constants::SampleRate::RATE_0_900001_MSPS}},
+            QVariantMap{{"text", "0.25 MSPS"},     {"value", Constants::SampleRate::RATE_0_25_MSPS}}
+        };
+        return options;
+    }
+
+    QVariantList sampleModeOptions() const {
+        static const QVariantList options = {
+            QVariantMap{{"text", "Quadrature Sampling"},        {"value", 0}},
+            QVariantMap{{"text", "Direct Sampling (I Branch)"}, {"value", 1}},
+            QVariantMap{{"text", "Direct Sampling (Q Branch)"}, {"value", 2}},
+            };
+
+        return options;
+    }
+
     explicit SdrBackend(QObject *parent = nullptr) : QObject(parent) {}
 
     ~SdrBackend() override {
-        if (rtl_) {
-            rtl_->requestInterruption();
-            rtl_->wait(); // join thread
+        if (_rtl) {
+            _rtl->requestInterruption();
+            _rtl->wait(); // join thread
         }
     }
 
-    bool running() const { return rtl_ != nullptr; }
+    bool running() const { return _rtl != nullptr; }
 
-    int rfGain() const { return rfGain_; }
+    int source() const { return _source; }
 
-    quint32 centerFreq() const { return centerFreq_; }
+    QVariantList deviceList() const { return _deviceList; }
 
-    Q_INVOKABLE void start() {
-        if (rtl_) return;
+    int rfGain() const { return _rfGain; }
 
-        rtl_ = new RtlThread(this);
+    quint32 centerFreq() const { return _centerFrequency; }
 
-        rtl_->setCenterFreq(centerFreq());
+    quint32 sampleRate() const { return _sampleRate; }
 
-        rtl_->setRfGain(rfGain());
+    int correctionPPM() const { return _correctionPPM; }
 
-        connect(rtl_, &RtlThread::spectrumReady, this, &SdrBackend::spectrum);
-        connect(rtl_, &RtlThread::error, this, &SdrBackend::errorOccurred);
-        connect(rtl_, &QThread::finished, this, [this] {
-            rtl_->deleteLater();
-            rtl_ = nullptr;
-            emit runningChanged();
-        });
+    qint32 shiftAmount() const { return _shiftAmount; }
 
-        rtl_->start();
+    int samplingMode() const { return _samplingMode; }
 
-        emit runningChanged();
-    }
+    bool rtlagc() const { return _rtlagc; }
 
-    Q_INVOKABLE void stop() {
-        if (rtl_) rtl_->requestInterruption();
-    }
+    bool offsetTuning() const { return _offsetTuning; }
 
-    Q_INVOKABLE void setRfGain(int gain) {
-        if (rfGain_ == gain) return;
+    bool tunerAGC() const { return _tunerAGC; }
 
-        if (rtl_ != nullptr) {
-            rtl_->setRfGain(gain);
-        }
+    bool biasTee() const { return _biasTee; }
 
-        rfGain_ = gain;
+    bool shift() const { return _shift; }
 
-        emit rfGainChanged();
-    }
+    bool correctIQ() const { return _correctIQ; }
 
-    Q_INVOKABLE void setCenterFreq(quint32 freq) {
-        if (this->centerFreq_ == freq) return;
+    bool invertSpectrum() const { return _invertSpectrum; }
 
-        if (rtl_ != nullptr) {
-            rtl_->setCenterFreq(freq);
-        }
+    Q_INVOKABLE void setSource(int source);
 
-        this->centerFreq_ = freq;
+    Q_INVOKABLE void setDevice(int deviceIndex);
 
-        emit centerFreqChanged();
-    }
+    Q_INVOKABLE void refreshDevices();
 
+    Q_INVOKABLE void setRfGain(int gain);
+
+    Q_INVOKABLE void setCenterFreq(quint32 freq);
+
+    Q_INVOKABLE void setSampleRate(quint32 sampleRate);
+
+    Q_INVOKABLE void setCorrectionPPM(int correctionPPM);
+
+    Q_INVOKABLE void setShiftAmount(qint32 shiftAmount);
+
+    Q_INVOKABLE void setSamplingMode(int samplingMode);
+
+    Q_INVOKABLE void setRtlAGC(bool rtlagc);
+
+    Q_INVOKABLE void setOffsetTuning(bool offsetTuning);
+
+    Q_INVOKABLE void setTunerAGC(bool tunerAGC);
+
+    Q_INVOKABLE void setBiasTee(bool biasTee);
+
+    Q_INVOKABLE void setShift(bool shift);
+
+    Q_INVOKABLE void setCorrectIQ(bool correctIQ);
+
+    Q_INVOKABLE void setInvertSpectrum(bool invertSpectrum);
+
+    Q_INVOKABLE void start();
+
+    Q_INVOKABLE void stop();
 signals:
     void runningChanged();
+
+    void deviceListChanged();
+
     void centerFreqChanged();
     void rfGainChanged();
+    void correctionPPMChanged();
+    void shiftAmountChanged();
+    void samplingModeChanged();
+    void rtlagcChanged();
+    void offsetTuningChanged();
+    void tunerAGCChanged();
+    void biasTeeChanged();
+    void shiftChanged();
+    void correctIQChanged();
+    void invertSpectrumChanged();
 
     void errorOccurred(QString message);
     void spectrum(QList<double> bins);
 
 private:
-    RtlThread* rtl_ = nullptr;
+    RtlThread* _rtl = nullptr;
 
-    // Configuration
-    int rfGain_ = 0;
-    quint32 centerFreq_ = 162e6;
+    // Source Configuration
+    int _source = -1; // No source selected
+    QVariantList _deviceList;
+
+    int _rfGain = 0;
+    quint32 _centerFrequency = 162e6;
+    quint32 _sampleRate = Constants::SampleRate::RATE_2_4_MSPS;
+    int _correctionPPM = 0;
+    qint32 _shiftAmount = 0;
+    int _samplingMode = 0; // 0 is Quadrature // 1 is I Branch // 2 is Q branch
+    bool _rtlagc = false;
+    bool _offsetTuning = false;
+    bool _tunerAGC = false;
+    bool _biasTee = false;
+    bool _shift = false;
+    bool _correctIQ = false;
+    bool _invertSpectrum = false;
+
+    void refresh_devices();
 };
 
 #endif // SDR_BACKEND_H
