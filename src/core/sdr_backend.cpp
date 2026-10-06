@@ -60,7 +60,20 @@ Q_INVOKABLE void SdrBackend::setCenterFreq(quint32 freq) {
 
     _centerFrequency = freq;
 
+    qDebug() << "center freq is " << freq;
+
     emit centerFreqChanged();
+
+    // Do the arithmetic in signed 64-bit to avoid uint32_t underflow
+    qint64 half = static_cast<qint64>(_sampleRate) / 2;
+    qint64 minFreqSigned = static_cast<qint64>(_centerFrequency) - half;
+    qint64 maxFreqSigned = static_cast<qint64>(_centerFrequency) + half;
+
+    // Clamp to valid range (can't have a negative frequency, and shouldn't exceed uint32_t max)
+    uint32_t minFreq = static_cast<uint32_t>(std::max<qint64>(0, minFreqSigned));
+    uint32_t maxFreq = static_cast<uint32_t>(std::min<qint64>(UINT32_MAX, maxFreqSigned));
+
+    update_frequency_range(minFreq, maxFreq);
 }
 
 Q_INVOKABLE void SdrBackend::setSampleRate(quint32 sampleRate) {
@@ -71,6 +84,17 @@ Q_INVOKABLE void SdrBackend::setSampleRate(quint32 sampleRate) {
     if (currentDevice != nullptr) currentDevice->sdr_set_sample_rate(sampleRate);
 
     _sampleRate = sampleRate;
+
+    // Do the arithmetic in signed 64-bit to avoid uint32_t underflow
+    qint64 half = static_cast<qint64>(_sampleRate) / 2;
+    qint64 minFreqSigned = static_cast<qint64>(_centerFrequency) - half;
+    qint64 maxFreqSigned = static_cast<qint64>(_centerFrequency) + half;
+
+    // Clamp to valid range (can't have a negative frequency, and shouldn't exceed uint32_t max)
+    uint32_t minFreq = static_cast<uint32_t>(std::max<qint64>(0, minFreqSigned));
+    uint32_t maxFreq = static_cast<uint32_t>(std::min<qint64>(UINT32_MAX, maxFreqSigned));
+
+    update_frequency_range(minFreq, maxFreq);
 }
 
 Q_INVOKABLE void SdrBackend::setCorrectionPPM(int correctionPPM) {
@@ -261,4 +285,39 @@ void SdrBackend::refresh_devices() {
     _deviceList = list;
 
     emit deviceListChanged();
+}
+
+void SdrBackend::update_frequency_range(uint32_t minFreq, uint32_t maxFreq) {
+    int scaleIndex = pick_scale_index(std::max(minFreq, maxFreq));
+
+    _minFreqScaled = apply_scale(minFreq, scaleIndex);
+
+    _maxFreqScaled = apply_scale(maxFreq, scaleIndex);
+
+    _freqScaleLabel = QString::fromUtf8(frequency_scale_units[scaleIndex].suffix.c_str());
+
+    emit frequencyRangeChanged();
+}
+
+int SdrBackend::pick_scale_index(uint32_t freq) {
+    int i = 0;
+
+    while (
+        i < static_cast<int>(frequency_scale_units.size()) - 1 &&
+        freq >= frequency_scale_units[i + 1].scale
+    ) {
+        i++;
+    }
+
+    double scaled = static_cast<double>(freq) / frequency_scale_units[i].scale;
+
+    if (std::ceil(scaled) >= 1000 && i <= static_cast<int>(frequency_scale_units.size()) - 1) {
+        i++;
+    }
+
+    return i;
+}
+
+double SdrBackend::apply_scale(uint32_t freq, int scaleIndex) {
+    return static_cast<double>(freq) / frequency_scale_units[scaleIndex].scale;
 }

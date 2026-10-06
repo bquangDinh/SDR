@@ -2,6 +2,7 @@ import QtQuick
 import QtQuick.Layouts
 import QtQuick.Controls.Basic
 import QtGraphs
+
 import sdr_qt
 
 ApplicationWindow {
@@ -133,21 +134,25 @@ ApplicationWindow {
                         onClicked: sdr.running ? sdr.stop() : sdr.start()
                     }
 
-                    Label {
-                        text: sdr.centerFreq.toLocaleString(Qt.locale("en_US"), 'f', 0) + " Hz"
-                        font.bold: true
+                    SdrFrequencyBox {
+                        id: box
+                        font.family: figtreeFont.name
                         font.pixelSize: 24
+                        font.bold: true
                         color: "#EBECEE"
+                        secondaryColor: "#4D5B67"
+                        value: sdr.centerFreq
+                        onEdited: (newValue) => sdr.setCenterFreq(newValue)
                     }
 
                     Button {
                         text: "Up"
-                        onClicked: sdr.setCenterFreq(sdr.centerFreq + 1000)
+                        onClicked: sdr.setCenterFreq(sdr.centerFreq + 1000000)
                     }
 
                     Button {
                         text: "Down"
-                        onClicked: sdr.setCenterFreq(sdr.centerFreq - 1000)
+                        onClicked: sdr.setCenterFreq(sdr.centerFreq - 1000000)
                     }
 
                     Item {
@@ -258,10 +263,10 @@ ApplicationWindow {
                                             onActivated: sdr.setDevice(currentValue)
                                         }
 
-                                        Button {
-                                            text: "Refresh"
-                                            onClicked: sdr.refreshDevices()
-                                        }
+                                        // Button {
+                                        //     text: "Refresh"
+                                        //     onClicked: sdr.refreshDevices()
+                                        // }
                                     }
                                 }
 
@@ -407,6 +412,39 @@ ApplicationWindow {
                                     }
                                 }
 
+                                RowLayout {
+                                    Layout.leftMargin: 8
+                                    Layout.rightMargin: 8
+                                    Layout.bottomMargin: 2
+
+                                    SdrCheckBox {
+                                        id: shiftCheckbox
+                                        text: "Shift"
+                                    }
+
+                                    Item {
+                                        Layout.fillWidth: true
+                                    }
+
+                                    TextField {
+                                        id: shiftAmount
+                                        Layout.preferredWidth: 80
+                                        Layout.fillWidth: false
+                                        visible: shiftCheckbox.checked
+                                        text: "0"
+                                        color: "#EBECEE"
+
+                                        background: Rectangle {
+                                            radius: 4
+                                            color: shiftAmount.hovered ? Qt.darker("#99A1A8", 1.5) : "#99A1A8"
+                                            border.width: shiftAmount.activeFocus ? 2 : 1
+                                            border.color: shiftAmount.activeFocus ? "#011526" : "#99A1A8"
+                                        }
+
+                                        inputMethodHints: Qt.ImhFormattedNumbersOnly
+                                    }
+                                }
+
                                 GridLayout {
                                     columns: 2
                                     Layout.leftMargin: 8
@@ -414,15 +452,10 @@ ApplicationWindow {
                                     Layout.bottomMargin: 2
 
                                     SdrCheckBox {
-                                        text: "Shift"
+                                        text: "CIQ"
                                     }
 
                                     SdrCheckBox {
-                                        text: "Correct IQ"
-                                    }
-
-                                    SdrCheckBox {
-                                        Layout.columnSpan: 2
                                         text: "Invert Spectrum"
                                     }
                                 }
@@ -630,13 +663,13 @@ ApplicationWindow {
                                     Layout.fillHeight: true
 
                                     axisX: ValueAxis {
-                                        min: 160.8
-                                        max: 163.3
-                                        titleText: "Frequency (MHz)"
+                                        min: sdr.minFreqScaled
+                                        max: sdr.maxFreqScaled
+                                        titleText: "Frequency (%1)".arg(sdr.freqScaleLabel)
                                     }
 
                                     axisY: ValueAxis {
-                                        min: -100
+                                        min: -150
                                         max: 0
                                         titleText: "dBFS"
                                     }
@@ -645,7 +678,7 @@ ApplicationWindow {
                                         id: spectrumSeries
                                         name: "Spectrum"
                                         color: "#89b4fa"
-                                        width: 2
+                                        width: 1
                                     }
                                 }
 
@@ -657,6 +690,8 @@ ApplicationWindow {
                                         const n = bins.length
                                         const fMin = graph.axisX.min
                                         const fMax = graph.axisX.max
+
+                                        console.log("length is", n);
 
                                         for (let i = 0; i < n; ++i) {
                                             const freq = fMin + (fMax - fMin) * i / (n - 1)
@@ -672,6 +707,18 @@ ApplicationWindow {
                             Layout.fillHeight: true
                             color: "#CCD0D4"
                             radius: 8
+
+                            ColumnLayout {
+                                anchors.fill: parent
+
+
+                                Waterfall {
+                                    id: waterfall
+                                    anchors.fill: parent
+                                    source: sdr
+                                    history: 600
+                                }
+                            }
                         }
 
                         Rectangle {

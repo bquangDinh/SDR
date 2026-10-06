@@ -4,7 +4,7 @@ project(sdr_qt VERSION 0.1 LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-find_package(Qt6 REQUIRED COMPONENTS Quick Graphs)
+find_package(Qt6 REQUIRED COMPONENTS Quick Graphs Multimedia)
 
 qt_standard_project_setup(REQUIRES 6.10)
 
@@ -41,6 +41,7 @@ qt_add_qml_module(appsdr_qt
         qml/components/SdrSlider.qml
         qml/components/SdrRadioBox.qml
         qml/components/SdrPlayBtn.qml
+        qml/components/SdrFrequencyBox.qml
     SOURCES
         src/core/sdr_backend.h
         src/core/sdr_backend.cpp
@@ -50,6 +51,10 @@ qt_add_qml_module(appsdr_qt
         src/core/sdr_device_manager.cpp
         src/core/Constants.h
         src/core/singleton.h
+        src/core/waterfall.h
+        src/core/waterfall.cpp
+        src/core/rtl_audio_thread.h
+        src/core/rtl_audio_thread.cpp
     RESOURCES
         fonts/Figtree-VariableFont_wght.ttf
 )
@@ -69,6 +74,7 @@ target_link_libraries(appsdr_qt PRIVATE
     rtlsdr
     Qt6::Quick
     Qt6::Graphs
+    Qt6::Multimedia
 )
 
 install(TARGETS appsdr_qt

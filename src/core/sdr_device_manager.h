@@ -19,6 +19,11 @@ typedef struct device_entry {
     int deviceIndex;
 } device_entry_t;
 
+typedef struct device_init {
+    int deviceIndex;
+    sdr_config_t initConfig;
+} device_init_t;
+
 class SdrDeviceManager : public Singleton<SdrDeviceManager>
 {
     // enable to base class Singleton to call private/protected methods
@@ -30,6 +35,8 @@ private:
 
     std::vector<device_entry_t> _availableDevices;
 
+    device_init_t _initParams;
+
     SdrDeviceManager() = default; // only Singleton class can construct it
 
     ~SdrDeviceManager() = default;
@@ -37,6 +44,8 @@ private:
     std::unique_ptr<SdrDevice> create_device();
 
     int scan_rtl_devices();
+
+    void set_init_params(int index, sdr_config_t initConfig);
 public:
     SdrDevice* currentDevice() { return this->_currentDevice.get(); }
 
@@ -46,7 +55,11 @@ public:
 
     int scan_devices(device_source_t source);
 
-    int set_current_device(int index, sdr_config_t init_config);
+    int set_current_device(int index, sdr_config_t initConfig);
+
+    int init_current_device();
+
+    int destroy_current_device();
 };
 
 #endif // SDR_DEVICE_MANAGER_H

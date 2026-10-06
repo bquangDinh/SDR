@@ -56,24 +56,41 @@ int SdrDeviceManager::scan_devices(device_source_t source) {
     return -1;
 }
 
-int SdrDeviceManager::set_current_device(int index, sdr_config_t init_config) {
+int SdrDeviceManager::set_current_device(int index, sdr_config_t initConfig) {
     assert(availableDevices().size() > 0 && "List of available devices is empty. You may forgot to call scan_devices()");
 
     assert(index >= 0 && index < availableDevices().size() && "Device Entry index is not valid");
 
+    // Just in case I forgot to destroy it
     if (_currentDevice) {
         _currentDevice->sdr_destroy();
     }
 
     _currentDevice = create_device();
 
-    int rc = _currentDevice->sdr_init(index, init_config);
-
-    if (rc < 0) {
-        _currentDevice = nullptr;
-
-        return -1;
-    }
+    // sdr_init will be called when needed
+    set_init_params(index, initConfig);
 
     return 0;
+}
+
+int SdrDeviceManager::init_current_device() {
+    assert(_currentDevice && "No device created");
+
+    assert(!_currentDevice->initialized() && "The device has been initialized");
+
+    return _currentDevice->sdr_init(_initParams.deviceIndex, _initParams.initConfig);
+}
+
+int SdrDeviceManager::destroy_current_device() {
+    assert(_currentDevice && "No device created");
+
+    return _currentDevice->sdr_destroy();
+}
+
+void SdrDeviceManager::set_init_params(int index, sdr_config_t initConfig) {
+    assert(index >= 0 && index < availableDevices().size() && "Device Entry index is not valid");
+
+    _initParams.deviceIndex = index;
+    _initParams.initConfig = initConfig;
 }

@@ -3,17 +3,23 @@
 #include <iostream>
 
 int RtlSdrDevice::sdr_init(uint32_t device_index, sdr_config_t init_config) {
+    if (initialized()) return 0;
+
     _config = init_config;
 
-    // Obtain device information from the driver
-    if (rtlsdr_get_device_usb_strings(
-            device_index,
-            _info.manufacture.data(),
-            _info.product.data(),
-            _info.serial.data()
-    ) < 0) {
-        return -1;
-    }
+    // std::cout << "Obtaining device information..." << std::endl;
+
+    // // Obtain device information from the driver
+    // if (rtlsdr_get_device_usb_strings(
+    //         device_index,
+    //         _info.manufacture.data(),
+    //         _info.product.data(),
+    //         _info.serial.data()
+    // ) < 0) {
+    //     return -1;
+    // }
+
+    std::cout << "Opening the device with index " << device_index << std::endl;
 
     // Open the device
     if (rtlsdr_open(&handler, device_index) < 0) {
@@ -63,7 +69,9 @@ int RtlSdrDevice::sdr_init(uint32_t device_index, sdr_config_t init_config) {
     sdr_set_rf_gain(init_config.gain);
     sdr_set_correction_ppm(init_config.correctionPPM);
 
-    initialized = true;
+    _initialized = true;
+
+    _destroyed = false;
 
     std::cout << "Initialized" << std::endl;
 
@@ -287,11 +295,17 @@ int RtlSdrDevice::sdr_set_invert_spectrum(bool val) {
 }
 
 int RtlSdrDevice::sdr_destroy() {
+    if (destroyed()) return 0;
+
     assert(handler != nullptr && "handler is NULL! You may forgot to call sdr_init()");
 
     int rc = rtlsdr_close(handler);
 
     handler = nullptr;
+
+    _destroyed = true;
+
+    _initialized = false;
 
     return rc;
 }

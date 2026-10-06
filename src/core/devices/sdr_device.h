@@ -40,7 +40,8 @@ class SdrDevice {
 protected:
     sdr_config_t _config;
     sdr_info_t _info;
-    bool initialized = false;
+    bool _initialized = false;
+    bool _destroyed = false;
     bool running = false;
 
     std::vector<int> _supported_rf_gains;
@@ -58,6 +59,10 @@ public:
     const sdr_info_t& info() { return this->info(); }
 
     const std::vector<int>& supported_rf_gains() { return this->_supported_rf_gains; }
+
+    const bool initialized() { return this->_initialized; }
+
+    const bool destroyed() { return this->_destroyed; }
 
     virtual int sdr_set_center_freq(uint32_t freq) = 0;
 

@@ -13,6 +13,11 @@
 #include "core/Constants.h"
 #include "core/sdr_device_manager.h"
 
+typedef struct frequency_scale_unit {
+    double scale;
+    std::string suffix;
+} frequency_scale_unit_t;
+
 class SdrBackend : public QObject {
     Q_OBJECT
     QML_ELEMENT
@@ -23,6 +28,11 @@ class SdrBackend : public QObject {
     Q_PROPERTY(QVariantList deviceList READ deviceList NOTIFY deviceListChanged)
 
     Q_PROPERTY(quint32 centerFreq READ centerFreq WRITE setCenterFreq NOTIFY centerFreqChanged)
+
+    Q_PROPERTY(double minFreqScaled READ minFreqScaled NOTIFY frequencyRangeChanged)
+    Q_PROPERTY(double maxFreqScaled READ maxFreqScaled NOTIFY frequencyRangeChanged)
+    Q_PROPERTY(QString freqScaleLabel READ freqScaleLabel NOTIFY frequencyRangeChanged)
+
     Q_PROPERTY(int rfGain READ rfGain WRITE setRfGain NOTIFY rfGainChanged)
     Q_PROPERTY(QVariantList sampleRateOptions READ sampleRateOptions CONSTANT)
     Q_PROPERTY(int correctionPPM READ correctionPPM WRITE setCorrectionPPM NOTIFY correctionPPMChanged)
@@ -91,6 +101,12 @@ public:
 
     quint32 centerFreq() const { return _centerFrequency; }
 
+    double minFreqScaled() { return _minFreqScaled; }
+
+    double maxFreqScaled() { return _maxFreqScaled; }
+
+    QString freqScaleLabel() const { return _freqScaleLabel; }
+
     quint32 sampleRate() const { return _sampleRate; }
 
     int correctionPPM() const { return _correctionPPM; }
@@ -154,6 +170,7 @@ signals:
     void deviceListChanged();
 
     void centerFreqChanged();
+    void frequencyRangeChanged();
     void rfGainChanged();
     void correctionPPMChanged();
     void shiftAmountChanged();
@@ -172,12 +189,23 @@ signals:
 private:
     RtlThread* _rtl = nullptr;
 
+    const std::vector<frequency_scale_unit_t> frequency_scale_units = {
+        { 1, "Hz" },
+        { 1e3, "kHz" },
+        { 1e6, "MHz" },
+        { 1e9, "GHz" }
+    };
+
+    QString _freqScaleLabel;
+
     // Source Configuration
     int _source = -1; // No source selected
     QVariantList _deviceList;
 
     int _rfGain = 0;
-    quint32 _centerFrequency = 162e6;
+    quint32 _centerFrequency = 162475000;
+    double _minFreqScaled = 0.0;
+    double _maxFreqScaled = 0.0;
     quint32 _sampleRate = Constants::SampleRate::RATE_2_4_MSPS;
     int _correctionPPM = 0;
     qint32 _shiftAmount = 0;
@@ -191,6 +219,12 @@ private:
     bool _invertSpectrum = false;
 
     void refresh_devices();
+
+    void update_frequency_range(uint32_t minFreq, uint32_t maxFreq);
+
+    int pick_scale_index(uint32_t freq);
+
+    double apply_scale(uint32_t freq, int scaleIndex);
 };
 
 #endif // SDR_BACKEND_H
