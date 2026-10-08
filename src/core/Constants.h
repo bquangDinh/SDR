@@ -17,6 +17,17 @@ namespace Constants {
         constexpr uint32_t RATE_0_900001_MSPS = 900001;
         constexpr uint32_t RATE_0_25_MSPS  = 250000;
     }
+
+    namespace DemodulateMode {
+        constexpr int NFM = 0;
+        constexpr int AM = 1;
+        constexpr int LSB = 2;
+        constexpr int USB = 3;
+        constexpr int WFM = 4;
+        constexpr int DSB = 5;
+        constexpr int CW = 6;
+        constexpr int RAW = 7;
+    }
 }
 
 #endif // CONSTANTS_H

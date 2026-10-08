@@ -40,7 +40,7 @@ Q_INVOKABLE void SdrBackend::setRfGain(int gain) {
 
     SdrDevice* currentDevice = SdrDeviceManager::instance().currentDevice();
 
-    if (currentDevice != nullptr) {
+    if (currentDevice != nullptr && currentDevice->initialized()) {
         qDebug() << "Changed gain to " << gain;
 
         currentDevice->sdr_set_rf_gain(gain);
@@ -56,7 +56,7 @@ Q_INVOKABLE void SdrBackend::setCenterFreq(quint32 freq) {
 
     SdrDevice* currentDevice = SdrDeviceManager::instance().currentDevice();
 
-    if (currentDevice != nullptr) currentDevice->sdr_set_center_freq(freq);
+    if (currentDevice != nullptr && currentDevice->initialized()) currentDevice->sdr_set_center_freq(freq);
 
     _centerFrequency = freq;
 
@@ -81,7 +81,9 @@ Q_INVOKABLE void SdrBackend::setSampleRate(quint32 sampleRate) {
 
     SdrDevice* currentDevice = SdrDeviceManager::instance().currentDevice();
 
-    if (currentDevice != nullptr) currentDevice->sdr_set_sample_rate(sampleRate);
+    if (currentDevice != nullptr && currentDevice->initialized()) currentDevice->sdr_set_sample_rate(sampleRate);
+
+    if (_rtlAudioThread) _rtlAudioThread->setSampleRate(sampleRate);
 
     _sampleRate = sampleRate;
 
@@ -95,6 +97,8 @@ Q_INVOKABLE void SdrBackend::setSampleRate(quint32 sampleRate) {
     uint32_t maxFreq = static_cast<uint32_t>(std::min<qint64>(UINT32_MAX, maxFreqSigned));
 
     update_frequency_range(minFreq, maxFreq);
+
+    emit sampleRateChanged();
 }
 
 Q_INVOKABLE void SdrBackend::setCorrectionPPM(int correctionPPM) {
@@ -102,7 +106,7 @@ Q_INVOKABLE void SdrBackend::setCorrectionPPM(int correctionPPM) {
 
     SdrDevice* currentDevice = SdrDeviceManager::instance().currentDevice();
 
-    if (currentDevice != nullptr) currentDevice->sdr_set_correction_ppm(correctionPPM);
+    if (currentDevice != nullptr && currentDevice->initialized()) currentDevice->sdr_set_correction_ppm(correctionPPM);
 
     _correctionPPM = correctionPPM;
 
@@ -115,7 +119,7 @@ Q_INVOKABLE void SdrBackend::setShiftAmount(qint32 shiftAmount) {
 
     SdrDevice* currentDevice = SdrDeviceManager::instance().currentDevice();
 
-    if (currentDevice != nullptr) currentDevice->sdr_set_shift_amount(shiftAmount);
+    if (currentDevice != nullptr && currentDevice->initialized()) currentDevice->sdr_set_shift_amount(shiftAmount);
 
     _shiftAmount = shiftAmount;
 
@@ -129,7 +133,7 @@ Q_INVOKABLE void SdrBackend::setSamplingMode(int samplingMode) {
 
     SdrDevice* currentDevice = SdrDeviceManager::instance().currentDevice();
 
-    if (currentDevice != nullptr) {
+    if (currentDevice != nullptr && currentDevice->initialized()) {
         currentDevice->sdr_set_sampling_mode(static_cast<sampling_mode_t>(samplingMode));
     }
 
@@ -141,7 +145,7 @@ Q_INVOKABLE void SdrBackend::setRtlAGC(bool rtlagc) {
 
     SdrDevice* currentDevice = SdrDeviceManager::instance().currentDevice();
 
-    if (currentDevice != nullptr) {
+    if (currentDevice != nullptr && currentDevice->initialized()) {
         currentDevice->sdr_set_rtl_agc(rtlagc);
     }
 
@@ -155,7 +159,7 @@ Q_INVOKABLE void SdrBackend::setOffsetTuning(bool offsetTuning) {
 
     SdrDevice* currentDevice = SdrDeviceManager::instance().currentDevice();
 
-    if (currentDevice != nullptr) {
+    if (currentDevice != nullptr && currentDevice->initialized()) {
         currentDevice->sdr_set_offset_tuning(offsetTuning);
     }
 
@@ -169,7 +173,7 @@ Q_INVOKABLE void SdrBackend::setTunerAGC(bool tunerAGC) {
 
     SdrDevice* currentDevice = SdrDeviceManager::instance().currentDevice();
 
-    if (currentDevice != nullptr) {
+    if (currentDevice != nullptr && currentDevice->initialized()) {
         currentDevice->sdr_set_tuner_agc(tunerAGC);
     }
 
@@ -183,7 +187,7 @@ Q_INVOKABLE void SdrBackend::setBiasTee(bool biasTee) {
 
     SdrDevice* currentDevice = SdrDeviceManager::instance().currentDevice();
 
-    if (currentDevice != nullptr) {
+    if (currentDevice != nullptr && currentDevice->initialized()) {
         currentDevice->sdr_set_bias_tee(biasTee);
     }
 
@@ -197,7 +201,7 @@ Q_INVOKABLE void SdrBackend::setShift(bool shift) {
 
     SdrDevice* currentDevice = SdrDeviceManager::instance().currentDevice();
 
-    if (currentDevice != nullptr) {
+    if (currentDevice != nullptr && currentDevice->initialized()) {
         currentDevice->sdr_set_shift(shift);
     }
 
@@ -211,7 +215,7 @@ Q_INVOKABLE void SdrBackend::setCorrectIQ(bool correctIQ) {
 
     SdrDevice* currentDevice = SdrDeviceManager::instance().currentDevice();
 
-    if (currentDevice != nullptr) {
+    if (currentDevice != nullptr && currentDevice->initialized()) {
         currentDevice->sdr_set_correct_IQ(correctIQ);
     }
 
@@ -225,7 +229,7 @@ Q_INVOKABLE void SdrBackend::setInvertSpectrum(bool invertSpectrum) {
 
     SdrDevice* currentDevice = SdrDeviceManager::instance().currentDevice();
 
-    if (currentDevice != nullptr) {
+    if (currentDevice != nullptr && currentDevice->initialized()) {
         currentDevice->sdr_set_invert_spectrum(invertSpectrum);
     }
 
@@ -234,26 +238,124 @@ Q_INVOKABLE void SdrBackend::setInvertSpectrum(bool invertSpectrum) {
     emit invertSpectrumChanged();
 }
 
+Q_INVOKABLE void SdrBackend::setDemodMode(int mode) {
+    if (_rtlAudioThread == nullptr) {
+        qDebug() << "Audio Thread is null!";
+
+        return;
+    }
+
+    _rtlAudioThread->setDemodMode(mode);
+
+    _demodMode = mode;
+
+    emit demodModeChanged();
+}
+
+Q_INVOKABLE void SdrBackend::setBandwidth(quint32 bandwidth) {
+    if (_rtlAudioThread == nullptr) {
+        qDebug() << "Audio Thread is null!";
+
+        return;
+    }
+
+    _rtlAudioThread->setBandwidth(bandwidth);
+
+    _bandwidth = bandwidth;
+
+    emit bandwidthChanged();
+}
+
+Q_INVOKABLE void SdrBackend::setOffsetFreq(double offset) {
+    qDebug() << "Offset by " << offset;
+
+    if (_rtlAudioThread == nullptr) {
+        qDebug() << "Audio Thread is null!";
+
+        return;
+    }
+
+    _rtlAudioThread->setOffsetFreq(offset);
+}
+
 Q_INVOKABLE void SdrBackend::start() {
-    if (_rtl) return;
+    if (!_rtlFFTThread) {
+        qDebug() << "No FFT Thread!";
 
-    _rtl = new RtlThread(this);
+        return;
+    }
 
-    connect(_rtl, &RtlThread::spectrumReady, this, &SdrBackend::spectrum);
-    connect(_rtl, &RtlThread::error, this, &SdrBackend::errorOccurred);
-    connect(_rtl, &QThread::finished, this, [this] {
-        _rtl->deleteLater();
-        _rtl = nullptr;
-        emit runningChanged();
-    });
+    if (!_rtlAudioThread) {
+        qDebug() << "No Audio Thread!";
 
-    _rtl->start();
+        return;
+    }
 
+    if (!_rtlReaderThread) {
+        qDebug() << "No Reader Thread!";
+
+        return;
+    }
+
+    if (SdrDeviceManager::instance().init_current_device() < 0) {
+        qDebug() << "Failed to init device";
+
+        return;
+    }
+
+    if (!_threadsStart) {
+        _rtlFFTThread->start();
+
+        _rtlAudioThread->start();
+
+        _rtlReaderThread->start();
+
+        _threadsStart = true;
+    } else {
+        _rtlFFTThread->resume();
+
+        _rtlAudioThread->resume();
+
+        _rtlReaderThread->resume();
+    }
+
+    _running = true;
+
+    // UI Change
     emit runningChanged();
 }
 
 Q_INVOKABLE void SdrBackend::stop() {
-    if (_rtl) _rtl->requestInterruption();
+    if (!_rtlFFTThread) {
+        qDebug() << "No FFT Thread!";
+
+        return;
+    }
+
+    if (!_rtlAudioThread) {
+        qDebug() << "No Audio Thread!";
+
+        return;
+    }
+
+    if (!_rtlReaderThread) {
+        qDebug() << "No Reader Thread!";
+
+        return;
+    }
+
+    _rtlFFTThread->pause();
+
+    _rtlAudioThread->pause();
+
+    _rtlReaderThread->pause();
+
+    SdrDeviceManager::instance().destroy_current_device();
+
+    _running = false;
+
+    // UI Change
+    emit runningChanged();
 }
 
 void SdrBackend::refresh_devices() {

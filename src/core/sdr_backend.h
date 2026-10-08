@@ -9,9 +9,11 @@
 #include <QDebug>
 #include <QVariant>
 
-#include "core/rtl_thread.h"
 #include "core/Constants.h"
 #include "core/sdr_device_manager.h"
+#include "core/rtl_reader_thread.h"
+#include "core/rtl_audio_thread.h"
+#include "core/rtl_fft_thread.h"
 
 typedef struct frequency_scale_unit {
     double scale;
@@ -35,6 +37,7 @@ class SdrBackend : public QObject {
 
     Q_PROPERTY(int rfGain READ rfGain WRITE setRfGain NOTIFY rfGainChanged)
     Q_PROPERTY(QVariantList sampleRateOptions READ sampleRateOptions CONSTANT)
+    Q_PROPERTY(quint32 sampleRate READ sampleRate WRITE setSampleRate NOTIFY sampleRateChanged)
     Q_PROPERTY(int correctionPPM READ correctionPPM WRITE setCorrectionPPM NOTIFY correctionPPMChanged)
     Q_PROPERTY(qint32 shiftAmount READ shiftAmount WRITE setShiftAmount NOTIFY shiftAmountChanged)
     Q_PROPERTY(QVariantList sampleModeOptions READ sampleModeOptions CONSTANT)
@@ -45,7 +48,9 @@ class SdrBackend : public QObject {
     Q_PROPERTY(bool shift READ shift WRITE setShift NOTIFY shiftChanged)
     Q_PROPERTY(bool correctIQ READ correctIQ WRITE setCorrectIQ NOTIFY correctIQChanged)
     Q_PROPERTY(bool invertSpectrum READ invertSpectrum WRITE setInvertSpectrum NOTIFY invertSpectrumChanged)
-
+    Q_PROPERTY(int fft_bins READ fft_bins CONSTANT)
+    Q_PROPERTY(QVariantList demodModeOptions READ demodModeOptions NOTIFY demodModeChanged)
+    Q_PROPERTY(quint32 bandwidth READ bandwidth WRITE setBandwidth NOTIFY bandwidthChanged)
 public:
     QVariantList sourceOptions() const {
         static const QVariantList options = {
@@ -82,16 +87,57 @@ public:
         return options;
     }
 
-    explicit SdrBackend(QObject *parent = nullptr) : QObject(parent) {}
+    QVariantList demodModeOptions() const {
+        static const QVariantList options = {
+            QVariantMap{{"text", "NFM"},    {"value", 0}},
+            QVariantMap{{"text", "AM"},     {"value", 1}},
+            QVariantMap{{"text", "LSB"},    {"value", 2}},
+            QVariantMap{{"text", "USB"},    {"value", 3}},
+            QVariantMap{{"text", "WFM"},    {"value", 4}},
+            QVariantMap{{"text", "DSB"},    {"value", 5}},
+            QVariantMap{{"text", "CW"},     {"value", 6}},
+            QVariantMap{{"text", "RAW"},    {"value", 7}},
+        };
+
+        return options;
+    }
+
+    explicit SdrBackend(QObject *parent = nullptr) : QObject(parent) {
+        _chunkQueue = new ChunkQueue(20);
+        _latestChunk = new LatestChunk();
+        _decimatedChunkQueue = new ChunkQueue(20);
+
+        _rtlReaderThread = new RtlReaderThread(_chunkQueue, _latestChunk, this);
+        _rtlAudioThread = new RtlAudioThread(_chunkQueue, _decimatedChunkQueue, this);
+        _rtlFFTThread = new RtlFFTThread(_latestChunk, _decimatedChunkQueue, this);
+
+        connect(_rtlFFTThread, &RtlFFTThread::spectrumReady, this, &SdrBackend::spectrum);
+        connect(_rtlFFTThread, &RtlFFTThread::narrowSpectrumReady, this, &SdrBackend::narrowSpectrum);
+    }
 
     ~SdrBackend() override {
-        if (_rtl) {
-            _rtl->requestInterruption();
-            _rtl->wait(); // join thread
+        // Stop producer
+        if (_rtlReaderThread) {
+            _rtlReaderThread->stop();
+            _rtlReaderThread->wait();
+        }
+
+        // TODO: should add close to latestchunk?
+        _chunkQueue->close(); // close queue and wake the audio thread
+
+        // Stop consumer
+        if (_rtlAudioThread) {
+            _rtlAudioThread->stop();
+            _rtlAudioThread->wait();
+        }
+
+        if (_rtlFFTThread) {
+            _rtlFFTThread->stop();
+            _rtlFFTThread->wait();
         }
     }
 
-    bool running() const { return _rtl != nullptr; }
+    bool running() const { return _running; }
 
     int source() const { return _source; }
 
@@ -129,6 +175,12 @@ public:
 
     bool invertSpectrum() const { return _invertSpectrum; }
 
+    int demodMode() const { return _demodMode; }
+
+    int fft_bins() const { return RtlFFTThread::FFT_BINS; }
+
+    quint32 bandwidth() const { return _bandwidth; }
+
     Q_INVOKABLE void setSource(int source);
 
     Q_INVOKABLE void setDevice(int deviceIndex);
@@ -161,14 +213,18 @@ public:
 
     Q_INVOKABLE void setInvertSpectrum(bool invertSpectrum);
 
+    Q_INVOKABLE void setDemodMode(int mode);
+
+    Q_INVOKABLE void setBandwidth(quint32 bandwidth);
+
+    Q_INVOKABLE void setOffsetFreq(double offset);
+
     Q_INVOKABLE void start();
 
     Q_INVOKABLE void stop();
 signals:
     void runningChanged();
-
     void deviceListChanged();
-
     void centerFreqChanged();
     void frequencyRangeChanged();
     void rfGainChanged();
@@ -182,12 +238,22 @@ signals:
     void shiftChanged();
     void correctIQChanged();
     void invertSpectrumChanged();
-
     void errorOccurred(QString message);
     void spectrum(QList<double> bins);
-
+    void narrowSpectrum(QList<double> bins);
+    void demodModeChanged();
+    void bandwidthChanged();
+    void sampleRateChanged();
 private:
-    RtlThread* _rtl = nullptr;
+    // RtlThread* _rtl = nullptr;
+
+    ChunkQueue* _chunkQueue = nullptr;
+    LatestChunk* _latestChunk = nullptr;
+    ChunkQueue* _decimatedChunkQueue = nullptr;
+
+    RtlReaderThread* _rtlReaderThread = nullptr;
+    RtlAudioThread* _rtlAudioThread = nullptr;
+    RtlFFTThread* _rtlFFTThread = nullptr;
 
     const std::vector<frequency_scale_unit_t> frequency_scale_units = {
         { 1, "Hz" },
@@ -217,6 +283,11 @@ private:
     bool _shift = false;
     bool _correctIQ = false;
     bool _invertSpectrum = false;
+    bool _running = false;
+    bool _threadsStart = false;
+
+    int _demodMode = Constants::DemodulateMode::NFM;
+    quint32 _bandwidth = 8000;
 
     void refresh_devices();
 

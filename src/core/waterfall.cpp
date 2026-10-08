@@ -2,6 +2,18 @@
 
 #include <QPainter>
 
+void Waterfall::reconnectSource()
+{
+    QObject::disconnect(m_conn);       // drop only our spectrum connection (no-op if none)
+
+    if (!m_source)
+        return;
+
+    m_conn = _useNarrow
+                 ? connect(m_source, &SdrBackend::narrowSpectrum, this, &Waterfall::addLine)
+                 : connect(m_source, &SdrBackend::spectrum,       this, &Waterfall::addLine);
+}
+
 Waterfall::Waterfall(QQuickItem* parent) : QQuickPaintedItem(parent) {
     // Pre-computed colormap
     for (int i = 0; i < 256; ++i)
@@ -15,15 +27,9 @@ Waterfall::Waterfall(QQuickItem* parent) : QQuickPaintedItem(parent) {
 void Waterfall::setSource(SdrBackend* s) {
     if (m_source == s) return;
 
-    if (m_source) {
-        disconnect(m_source, nullptr, this, nullptr);
-    }
-
     m_source = s;
 
-    if (m_source) {
-        connect(m_source, &SdrBackend::spectrum, this, &Waterfall::addLine);
-    }
+    reconnectSource();
 
     emit sourceChanged();
 }
@@ -62,16 +68,44 @@ void Waterfall::setHistory(int rows) {
     update();
 }
 
+void Waterfall::setDirection(QString direction) {
+    _direction = direction;
+
+    emit directionChanged();
+}
+
+// void Waterfall::setFromBin(quint32 fromBin) {
+//     _fromBin = fromBin;
+
+//     emit fromBinChanged();
+// }
+
+// void Waterfall::setToBin(quint32 toBin) {
+//     _toBin = toBin;
+
+//     emit toBinChanged();
+// }
+
+void Waterfall::setUseNarrow(bool useNarrow) {
+    if (_useNarrow == useNarrow) return;
+
+    _useNarrow = useNarrow;
+
+    reconnectSource();
+
+    emit useNarrowChanged();
+}
+
 void Waterfall::clear() {
     m_img.fill(Qt::black);
 
     update();
 }
 
-void Waterfall::resetImage(int bins, int rows)
+void Waterfall::resetImage(int w, int h)
 {
-    m_img = QImage(bins, rows, QImage::Format_RGB32);
-    m_img.fill(Qt::black);
+    m_img = QImage(w, h, QImage::Format_RGB32);
+    m_img.fill(m_lut[0]);
 }
 
 void Waterfall::addLine(const QList<double>& dB)
@@ -79,27 +113,60 @@ void Waterfall::addLine(const QList<double>& dB)
     if (dB.isEmpty())
         return;
 
-    // FFT size changed (or first line): rebuild the history at the new width
-    if (dB.size() != m_img.width())
-        resetImage(int(dB.size()), m_history);
+    const bool horizontal = (_direction == "horizontal");
+    const int  bins       = int(dB.size());
 
-    const int w   = m_img.width();
-    const int h   = m_img.height();
-    const int bpl = m_img.bytesPerLine();
+    // int band = bins;
 
-    // Scroll history down one row: rows 0..h-2 → 1..h-1 (overlapping, so memmove)
-    if (h > 1)
-        std::memmove(m_img.scanLine(1), m_img.scanLine(0), size_t(bpl) * (h - 1));
+    // qDebug() << "Narrow " << _useNarrow << " from " << _fromBin << " to " << _toBin;
 
-    // Newest spectrum goes into row 0
+    // if (_useNarrow) {
+    //     if ((_toBin <= _fromBin) || _toBin >= bins || _fromBin >= bins) {
+    //         qDebug() << "Bins range is not valid for narrow";
+    //     } else {
+    //         band = _toBin - _fromBin;
+    //     }
+    // }
+
+    // vertical:   bins wide × history tall  (one spectrum per row)
+    // horizontal: history wide × bins tall  (one spectrum per column)
+    const int wantW = horizontal ? m_history : bins;
+    const int wantH = horizontal ? bins      : m_history;
+
+    // FFT size or direction changed (or first line): rebuild the history
+    if (m_img.width() != wantW || m_img.height() != wantH)
+        resetImage(wantW, wantH);
+
+    const int w = m_img.width();
+    const int h = m_img.height();
+
     const float range = std::max(1e-3f, m_maxDb - m_minDb);   // guard against min >= max
+    auto color = [&](double v) {
+        const float t = (float(v) - m_minDb) / range;
+        return m_lut[std::clamp(int(t * 255.0f), 0, 255)];
+    };
 
-    auto* row = reinterpret_cast<QRgb*>(m_img.scanLine(0));
+    if (!horizontal) {
+        // Scroll down one row: rows 0..h-2 → 1..h-1 (overlapping, so memmove)
+        if (h > 1)
+            std::memmove(m_img.scanLine(1), m_img.scanLine(0),
+                         size_t(m_img.bytesPerLine()) * (h - 1));
 
-    for (int x = 0; x < w; ++x) {
-        const float t = (dB[x] - m_minDb) / range;
-        const int idx = std::clamp(int(t * 255.0f), 0, 255);
-        row[x] = m_lut[idx];
+        // Newest spectrum goes into row 0
+        auto* row = reinterpret_cast<QRgb*>(m_img.scanLine(0));
+        for (int x = 0; x < w; ++x) {
+            row[x] = color(dB[x]);
+        }
+    } else {
+        // Scroll right one column: columns 0..w-2 → 1..w-1, one row at a time
+        for (int y = 0; y < h; ++y) {
+            auto* row = reinterpret_cast<QRgb*>(m_img.scanLine(y));
+            if (w > 1)
+                std::memmove(row + 1, row, sizeof(QRgb) * size_t(w - 1));
+
+            // Newest spectrum goes into column 0; flipped so high frequencies are at the top
+            row[0] = color(dB[y]);
+        }
     }
 
     update();   // schedules paint() on the next frame
@@ -107,6 +174,8 @@ void Waterfall::addLine(const QList<double>& dB)
 
 void Waterfall::paint(QPainter* painter)
 {
+    painter->setRenderHint(QPainter::SmoothPixmapTransform, true);
+
     // Called on the render thread while the GUI thread is blocked,
     // so reading m_img here is safe without a mutex.
     painter->drawImage(boundingRect(), m_img);

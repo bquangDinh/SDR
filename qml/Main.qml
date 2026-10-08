@@ -291,6 +291,7 @@ ApplicationWindow {
                                         textRole: "text"
                                         valueRole: "value"
                                         onActivated: sdr.setSampleRate(currentValue)
+                                        currentIndex: 3 // 2_4 MSPS
                                     }
                                 }
 
@@ -315,6 +316,7 @@ ApplicationWindow {
                                         textRole: "text"
                                         valueRole: "value"
                                         onActivated: sdr.setSamplingMode(currentValue);
+                                        currentIndex: 0
                                     }
                                 }
 
@@ -494,8 +496,13 @@ ApplicationWindow {
                                     }
 
                                     Select {
+                                        id: demodSelect
                                         Layout.fillWidth: true
-                                        model: ["NFM", "AM", "LSB", "USB", "WFM", "DSB", "CW", "RAW"]
+                                        model: sdr.demodModeOptions
+                                        textRole: "text"
+                                        valueRole: "value"
+                                        onActivated: sdr.setDemodMode(currentValue)
+                                        currentIndex: 0
                                     }
                                 }
 
@@ -518,7 +525,7 @@ ApplicationWindow {
                                         Layout.preferredWidth: 80
                                         Layout.fillWidth: false
 
-                                        text: "0"
+                                        text: sdr.bandwidth
                                         color: "#EBECEE"
 
                                         background: Rectangle {
@@ -529,6 +536,15 @@ ApplicationWindow {
                                         }
 
                                         inputMethodHints: Qt.ImhFormattedNumbersOnly
+                                        onTextEdited: {
+                                            console.log(text)
+
+                                            const bandwith = parseInt(text)
+
+                                            if (!isNaN(bandwidth)) {
+                                                sdr.setBandwidth(bandwidth)
+                                            }
+                                        }
                                     }
                                 }
 
@@ -691,8 +707,6 @@ ApplicationWindow {
                                         const fMin = graph.axisX.min
                                         const fMax = graph.axisX.max
 
-                                        console.log("length is", n);
-
                                         for (let i = 0; i < n; ++i) {
                                             const freq = fMin + (fMax - fMin) * i / (n - 1)
                                             spectrumSeries.append(freq, bins[i])
@@ -703,31 +717,100 @@ ApplicationWindow {
                         }
 
                         Rectangle {
+                            id: waterfall_panel
                             Layout.fillWidth: true
                             Layout.fillHeight: true
                             color: "#CCD0D4"
                             radius: 8
+                            clip: true
 
-                            ColumnLayout {
+                            property real sampleRate: sdr.sampleRate            // must match the SDR
+                            property real centerHz: sdr.centerFreq            // hardware center frequency
+                            property real channelWidthHz: 8000          // your ±8 kHz channel filter
+                            property real offsetHz: 0                    // selected channel, relative to center
+                            readonly property real hzPerPixel: sampleRate / width
+
+                            // pixel x → offset in Hz. Left edge = −fs/2, right edge = +fs/2 (matches your fftshift)
+                            function setFromX(px) {
+                                const limit = sampleRate / 2 - channelWidthHz;          // keep the channel inside the band
+                                let hz = (px / width - 0.5) * sampleRate;
+                                hz = Math.round(hz / 500) * 500;                        // snap to 500 Hz steps
+                                offsetHz = Math.max(-limit, Math.min(limit, hz));
+                            }
+
+                            onOffsetHzChanged: sdr.setOffsetFreq(offsetHz)
+
+                            Waterfall {
+                                id: waterfall
                                 anchors.fill: parent
+                                source: sdr
+                                history: 300
+                                minDb: -150
+                                maxDb: 0
+                                direction: "vertical"
+                            }
 
+                            // channel passband: translucent band as wide as the filter
+                            Rectangle {
+                                id: band
+                                anchors.top: parent.top
+                                anchors.bottom: parent.bottom
+                                width: Math.max(3, waterfall_panel.channelWidthHz / waterfall_panel.hzPerPixel)
+                                x: (waterfall_panel.offsetHz / waterfall_panel.sampleRate + 0.5) * waterfall_panel.width - width / 2
+                                color: "#4000ff00"                        // ARGB: about 25% opaque green
+                            }
 
-                                Waterfall {
-                                    id: waterfall
-                                    anchors.fill: parent
-                                    source: sdr
-                                    history: 600
-                                }
+                            // center line of the selected channel
+                            Rectangle {
+                                anchors.top: parent.top
+                                anchors.bottom: parent.bottom
+                                width: 2
+                                x: band.x + band.width / 2 - 1
+                                color: "#00ff00"
+                            }
+
+                            // frequency label next to the line
+                            Text {
+                                x: Math.min(band.x + band.width + 4, waterfall_panel.width - width - 4)
+                                y: 6
+                                color: "white"
+                                style: Text.Outline
+                                styleColor: "black"
+                                text: ((waterfall_panel.centerHz + waterfall_panel.offsetHz) / 1e6).toFixed(4) + " MHz"
+                            }
+
+                            // click to jump, drag to slide
+                            TapHandler {
+                                onTapped: (eventPoint, button) => waterfall_panel.setFromX(eventPoint.position.x)
+                            }
+
+                            DragHandler {
+                                target: null                              // don't move any item; just read the position
+                                xAxis.enabled: true
+                                yAxis.enabled: false
+                                onCentroidChanged: if (active) waterfall_panel.setFromX(centroid.position.x)
                             }
                         }
 
                         Rectangle {
+                            id: narrow_panel
                             Layout.fillWidth: true
                             Layout.preferredHeight: 100
                             Layout.minimumHeight: 100
                             Layout.maximumHeight: 100
                             color: "#CCD0D4"
                             radius: 8
+
+                            Waterfall {
+                                id: waterfall_narrow
+                                anchors.fill: parent
+                                source: sdr
+                                history: 300
+                                minDb: -150
+                                maxDb: 0
+                                useNarrow: true
+                                direction: "horizontal"
+                            }
                         }
                     }
                 }

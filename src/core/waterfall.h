@@ -18,6 +18,9 @@ class Waterfall : public QQuickPaintedItem
     Q_PROPERTY(float minDb READ minDb WRITE setMinDb NOTIFY minDbChanged)
     Q_PROPERTY(float maxDb READ maxDb WRITE setMaxDb NOTIFY maxDbChanged)
     Q_PROPERTY(int history READ history WRITE setHistory NOTIFY historyChanged)
+    Q_PROPERTY(QString direction READ direction WRITE setDirection NOTIFY directionChanged)
+    Q_PROPERTY(bool useNarrow READ useNarrow WRITE setUseNarrow NOTIFY useNarrowChanged)
+
 public:
     explicit Waterfall(QQuickItem* parent = nullptr);
 
@@ -37,6 +40,22 @@ public:
 
     void setHistory(int rows);
 
+    QString direction() const { return _direction; }
+
+    void setDirection(QString direction);
+
+    // quint32 fromBin() const { return _fromBin; }
+
+    // void setFromBin(quint32 fromBin);
+
+    // quint32 toBin() const { return _toBin; }
+
+    // void setToBin(quint32 toBin);
+
+    bool useNarrow() const { return _useNarrow; }
+
+    void setUseNarrow(bool useNarrow);
+
     Q_INVOKABLE void clear();
 
 public slots:
@@ -47,6 +66,10 @@ signals:
     void minDbChanged();
     void maxDbChanged();
     void historyChanged();
+    void directionChanged();
+    // void fromBinChanged();
+    // void toBinChanged();
+    void useNarrowChanged();
 protected:
     void paint(QPainter* painter) override;
 private:
@@ -57,9 +80,18 @@ private:
     QPointer<SdrBackend> m_source;
     QImage m_img;
     QRgb m_lut[256];
+    QString _direction = "vertical";
+    // quint32 _fromBin = 0;
+    // quint32 _toBin = 0;
+    bool _useNarrow = false;
+
     float m_minDb = -100.0f;
     float m_maxDb = -40.0f;
     int m_history = 512;
+
+    void reconnectSource();
+
+    QMetaObject::Connection m_conn;   // the one connection we own
 };
 
 #endif // WATERFALL_H
