@@ -4,6 +4,7 @@
 #include <complex>
 
 #include "core/sdr_device_manager.h"
+#include "core/Signal.h"
 
 void RtlAudioThread::pause() {
     std::lock_guard<std::mutex> lk(_m);
@@ -96,51 +97,20 @@ bool RtlAudioThread::init() {
         return false;
     }
 
-    std::vector<float> taps = make_filter(_bandwidth, 24000, currentDevice->config().sampleRate);
+    auto [numTaps, beta] = Signal::Filters::kaisercord(60, 16e3, currentDevice->config().sampleRate);
+
+    std::vector<float> taps;
+
+    filter_window_arg win_arg = {
+        .windowType = WindowType::Kaiser,
+        .beta = beta
+    };
+
+    Signal::Filters::firwin(taps, numTaps, (24000 + _bandwidth) / 2.0f, win_arg, currentDevice->config().sampleRate);
 
     _dec = new FastDecimator(taps, 50);
 
     return true;
-}
-
-std::vector<float> RtlAudioThread::make_filter(const uint32_t fPass, const uint32_t fStop, const uint32_t sampleRate) {
-    float fPassNormalized = static_cast<float>(fPass) / static_cast<float>(sampleRate);
-    float fStopNormalized = static_cast<float>(fStop) / static_cast<float>(sampleRate);
-
-    float fc = (fStopNormalized + fPassNormalized) / 2.0f;
-
-    float BW = fStopNormalized - fPassNormalized;
-
-    int M = ceil(4.0f / BW);
-
-    if (M % 2 != 0) {
-        // Not even
-        M += 1;
-    }
-
-    std::vector<float> kernel(M + 1);
-
-    float wi = 0;
-    float sum = 0;
-
-    for (int i = 0; i < kernel.size(); ++i) {
-        if (i == M / 2) {
-            kernel[i] = 2 * M_PI * fc;
-        } else {
-            wi =  0.42f - 0.5f * cos(2 * M_PI * i / static_cast<float>(M)) + 0.08f * cos(4 * M_PI * i / static_cast<double>(M));
-
-            kernel[i] = wi * sin(2 * M_PI * fc * (i - (static_cast<float>(M) / 2.0f))) / (i - (static_cast<float>(M) / 2.0f));
-        }
-
-        sum += kernel[i];
-    }
-
-    // Normalize so every value add up to one in kernel
-    for (int i = 0; i < kernel.size(); ++i) {
-        kernel[i] /= sum;
-    }
-
-    return kernel;
 }
 
 void RtlAudioThread::demodulate() {
@@ -225,11 +195,14 @@ void RtlAudioThread::demodulate_am() {
 
     if (audio.empty()) return;
 
-    const float maxDeviationHz = 5000.0f;
-    const float scale = (48000) / (2.0f * M_PI * maxDeviationHz);
+    const float fc = 30.0f; //  cutoff
+    const float b1 = std::exp(-2.0f * float(M_PI) * fc / 48000.0f);
+    const float a0 = 1.0f - b1;
 
-    for (auto &sample : audio) {
-        sample *= scale;
+    for (auto& sample : audio) {
+        _carrier = a0 * sample + b1 * _carrier;
+        sample -= _carrier;
+        sample /= (_carrier + 1e-9f);
     }
 
     std::vector<int16_t> pcm(audio.size());
@@ -277,6 +250,8 @@ void RtlAudioThread::read() {
 
         if (_offsetFreq != 0) {
             shift(c->data(), c->size(), shifted);
+
+            // Signal::General::shift_freq_to_zero_complex(c->data(), c->size(), _offsetFreq, _sampleRate, shifted);
 
             _dec->process(shifted.data(), shifted.size(), decimated);
         } else {

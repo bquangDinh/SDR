@@ -185,14 +185,16 @@ void Waterfall::paint(QPainter* painter)
 
 QRgb Waterfall::colormap(float t)
 {
-    if (t < 0.33f) {
-        const float u = t / 0.33f;
-        return qRgb(0, 0, int(255 * u));
-    }
-    if (t < 0.66f) {
-        const float u = (t - 0.33f) / 0.33f;
-        return qRgb(int(255 * u), int(255 * u), int(255 * (1 - u)));
-    }
-    const float u = (t - 0.66f) / 0.34f;
-    return qRgb(255, int(255 * (1 - u)), 0);
+    constexpr int n = int(std::size(kStops)) - 1;      // number of segments
+    t = std::clamp(t, 0.0f, 1.0f);
+
+    const float x = t * n;                             // which segment, and how far into it
+    const int   i = std::min(int(x), n - 1);
+    const float u = x - i;                             // 0..1 within segment i
+
+    const Stop& a = kStops[i];
+    const Stop& b = kStops[i + 1];
+    return qRgb(int(a.r + (b.r - a.r) * u),
+                int(a.g + (b.g - a.g) * u),
+                int(a.b + (b.b - a.b) * u));
 }

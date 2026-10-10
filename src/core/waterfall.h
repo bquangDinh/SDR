@@ -9,6 +9,8 @@
 
 #include "core/sdr_backend.h"
 
+struct Stop { float r, g, b; };
+
 class Waterfall : public QQuickPaintedItem
 {
     Q_OBJECT
@@ -92,6 +94,11 @@ private:
     void reconnectSource();
 
     QMetaObject::Connection m_conn;   // the one connection we own
+
+    static constexpr Stop kStops[] = {
+                                       {  0,   0,   0}, {  0,   0,  96}, {  0,  64, 192}, {  0, 192, 192}, { 64, 224,  64},
+                                       {255, 255,   0}, {255, 128,   0}, {255,   0,   0}, {255, 255, 255},
+                                       };
 };
 
 #endif // WATERFALL_H

@@ -62,8 +62,8 @@ int SdrDeviceManager::set_current_device(int index, sdr_config_t initConfig) {
     assert(index >= 0 && index < availableDevices().size() && "Device Entry index is not valid");
 
     // Just in case I forgot to destroy it
-    if (_currentDevice) {
-        _currentDevice->sdr_destroy();
+    if (!device_empty()) {
+        if (destroy_current_device() < 0) return -1;
     }
 
     _currentDevice = create_device();
@@ -85,12 +85,25 @@ int SdrDeviceManager::init_current_device() {
 int SdrDeviceManager::destroy_current_device() {
     assert(_currentDevice && "No device created");
 
-    return _currentDevice->sdr_destroy();
+    int res = _currentDevice->sdr_destroy();
+
+    if (res < 0) return res;
+
+    _currentDevice = nullptr;
+
+    return 0;
+}
+
+int SdrDeviceManager::init_device_with_config(int deviceIndex, sdr_config_t initConfig) {
+    set_current_device(deviceIndex, initConfig);
+
+    return init_current_device();
 }
 
 void SdrDeviceManager::set_init_params(int index, sdr_config_t initConfig) {
     assert(index >= 0 && index < availableDevices().size() && "Device Entry index is not valid");
 
     _initParams.deviceIndex = index;
+
     _initParams.initConfig = initConfig;
 }

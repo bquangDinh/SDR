@@ -20,6 +20,40 @@ typedef struct frequency_scale_unit {
     std::string suffix;
 } frequency_scale_unit_t;
 
+typedef struct device_settings {
+    int source;
+    QVariantList deviceList;
+    QString freqScaleLabel;
+    int selectedDeviceIndex;
+    int rfGain;
+    quint32 centerFreq;
+    double minFreqScaled;
+    double maxFreqScaled;
+    quint32 sampleRate;
+    int correctionPPM;
+    quint32 shiftAmount;
+    int samplingMode;
+    bool rtlAgc;
+    bool offsetTuning;
+    bool tunerAgc;
+    bool biasTee;
+    bool shift;
+    bool correctIQ;
+    bool invertSpectrum;
+} device_settings_t;
+
+typedef struct radio_settings {
+    int demodMode;
+    quint32 bandwidth;
+    bool squelch;
+    quint32 squelchAmount;
+    quint32 cwShiftAmount;
+    bool binaural;
+    bool antiFading;
+    bool lockCarrier;
+    bool stickyLock;
+} radio_settings_t;
+
 class SdrBackend : public QObject {
     Q_OBJECT
     QML_ELEMENT
@@ -51,6 +85,13 @@ class SdrBackend : public QObject {
     Q_PROPERTY(int fft_bins READ fft_bins CONSTANT)
     Q_PROPERTY(QVariantList demodModeOptions READ demodModeOptions NOTIFY demodModeChanged)
     Q_PROPERTY(quint32 bandwidth READ bandwidth WRITE setBandwidth NOTIFY bandwidthChanged)
+    Q_PROPERTY(bool squelch READ squelch WRITE setSquelch NOTIFY squelchChanged)
+    Q_PROPERTY(quint32 squelchAmount READ squelchAmount WRITE setSquelchAmount NOTIFY squelchAmountChanged)
+    Q_PROPERTY(quint32 cwShiftAmount READ cwShiftAmount WRITE setCWShiftAmount NOTIFY cwShiftAmountChanged)
+    Q_PROPERTY(bool binaural READ binaural WRITE setBinaural NOTIFY binauralChanged)
+    Q_PROPERTY(bool antiFading READ antiFading WRITE setAntiFading NOTIFY antiFadingChanged)
+    Q_PROPERTY(bool lockCarrier READ lockCarrier WRITE setLockCarrier NOTIFY lockCarrierChanged)
+    Q_PROPERTY(bool stickyLock READ stickyLock WRITE setStickyLock NOTIFY stickyLockChanged)
 public:
     QVariantList sourceOptions() const {
         static const QVariantList options = {
@@ -113,6 +154,8 @@ public:
 
         connect(_rtlFFTThread, &RtlFFTThread::spectrumReady, this, &SdrBackend::spectrum);
         connect(_rtlFFTThread, &RtlFFTThread::narrowSpectrumReady, this, &SdrBackend::narrowSpectrum);
+
+        set_defaults();
     }
 
     ~SdrBackend() override {
@@ -139,47 +182,61 @@ public:
 
     bool running() const { return _running; }
 
-    int source() const { return _source; }
+    int source() const { return _device_settings.source; }
 
-    QVariantList deviceList() const { return _deviceList; }
+    QVariantList deviceList() const { return _device_settings.deviceList; }
 
-    int rfGain() const { return _rfGain; }
+    int rfGain() const { return _device_settings.rfGain; }
 
-    quint32 centerFreq() const { return _centerFrequency; }
+    quint32 centerFreq() const { return _device_settings.centerFreq; }
 
-    double minFreqScaled() { return _minFreqScaled; }
+    double minFreqScaled() { return _device_settings.minFreqScaled; }
 
-    double maxFreqScaled() { return _maxFreqScaled; }
+    double maxFreqScaled() { return _device_settings.maxFreqScaled; }
 
-    QString freqScaleLabel() const { return _freqScaleLabel; }
+    QString freqScaleLabel() const { return _device_settings.freqScaleLabel; }
 
-    quint32 sampleRate() const { return _sampleRate; }
+    quint32 sampleRate() const { return _device_settings.sampleRate; }
 
-    int correctionPPM() const { return _correctionPPM; }
+    int correctionPPM() const { return _device_settings.correctionPPM; }
 
-    qint32 shiftAmount() const { return _shiftAmount; }
+    qint32 shiftAmount() const { return _device_settings.shiftAmount; }
 
-    int samplingMode() const { return _samplingMode; }
+    int samplingMode() const { return _device_settings.samplingMode; }
 
-    bool rtlagc() const { return _rtlagc; }
+    bool rtlagc() const { return _device_settings.rtlAgc; }
 
-    bool offsetTuning() const { return _offsetTuning; }
+    bool offsetTuning() const { return _device_settings.offsetTuning; }
 
-    bool tunerAGC() const { return _tunerAGC; }
+    bool tunerAGC() const { return _device_settings.tunerAgc; }
 
-    bool biasTee() const { return _biasTee; }
+    bool biasTee() const { return _device_settings.biasTee; }
 
-    bool shift() const { return _shift; }
+    bool shift() const { return _device_settings.shift; }
 
-    bool correctIQ() const { return _correctIQ; }
+    bool correctIQ() const { return _device_settings.correctIQ; }
 
-    bool invertSpectrum() const { return _invertSpectrum; }
+    bool invertSpectrum() const { return _device_settings.invertSpectrum; }
 
-    int demodMode() const { return _demodMode; }
+    int demodMode() const { return _radio_settings.demodMode; }
 
     int fft_bins() const { return RtlFFTThread::FFT_BINS; }
 
-    quint32 bandwidth() const { return _bandwidth; }
+    quint32 bandwidth() const { return _radio_settings.bandwidth; }
+
+    bool squelch() const { return _radio_settings.squelch; }
+
+    quint32 squelchAmount() const { return _radio_settings.squelchAmount; }
+
+    quint32 cwShiftAmount() const { return _radio_settings.cwShiftAmount; }
+
+    bool binaural() const { return _radio_settings.binaural; }
+
+    bool antiFading() const { return _radio_settings.antiFading; }
+
+    bool lockCarrier() const { return _radio_settings.lockCarrier; }
+
+    bool stickyLock() const { return _radio_settings.stickyLock; }
 
     Q_INVOKABLE void setSource(int source);
 
@@ -217,6 +274,20 @@ public:
 
     Q_INVOKABLE void setBandwidth(quint32 bandwidth);
 
+    Q_INVOKABLE void setSquelch(bool squelch);
+
+    Q_INVOKABLE void setSquelchAmount(quint32 squelchAmount);
+
+    Q_INVOKABLE void setCWShiftAmount(quint32 cwShiftAmount);
+
+    Q_INVOKABLE void setBinaural(bool binaural);
+
+    Q_INVOKABLE void setAntiFading(bool antiFading);
+
+    Q_INVOKABLE void setLockCarrier(bool lockCarrier);
+
+    Q_INVOKABLE void setStickyLock(bool stickyLock);
+
     Q_INVOKABLE void setOffsetFreq(double offset);
 
     Q_INVOKABLE void start();
@@ -244,9 +315,14 @@ signals:
     void demodModeChanged();
     void bandwidthChanged();
     void sampleRateChanged();
+    void squelchChanged();
+    void squelchAmountChanged();
+    void cwShiftAmountChanged();
+    void binauralChanged();
+    void antiFadingChanged();
+    void lockCarrierChanged();
+    void stickyLockChanged();
 private:
-    // RtlThread* _rtl = nullptr;
-
     ChunkQueue* _chunkQueue = nullptr;
     LatestChunk* _latestChunk = nullptr;
     ChunkQueue* _decimatedChunkQueue = nullptr;
@@ -255,6 +331,9 @@ private:
     RtlAudioThread* _rtlAudioThread = nullptr;
     RtlFFTThread* _rtlFFTThread = nullptr;
 
+    bool _running = false;
+    bool _threadsStart = false;
+
     const std::vector<frequency_scale_unit_t> frequency_scale_units = {
         { 1, "Hz" },
         { 1e3, "kHz" },
@@ -262,40 +341,21 @@ private:
         { 1e9, "GHz" }
     };
 
-    QString _freqScaleLabel;
+    device_settings_t _device_settings;
 
-    // Source Configuration
-    int _source = -1; // No source selected
-    QVariantList _deviceList;
-
-    int _rfGain = 0;
-    quint32 _centerFrequency = 162475000;
-    double _minFreqScaled = 0.0;
-    double _maxFreqScaled = 0.0;
-    quint32 _sampleRate = Constants::SampleRate::RATE_2_4_MSPS;
-    int _correctionPPM = 0;
-    qint32 _shiftAmount = 0;
-    int _samplingMode = 0; // 0 is Quadrature // 1 is I Branch // 2 is Q branch
-    bool _rtlagc = false;
-    bool _offsetTuning = false;
-    bool _tunerAGC = false;
-    bool _biasTee = false;
-    bool _shift = false;
-    bool _correctIQ = false;
-    bool _invertSpectrum = false;
-    bool _running = false;
-    bool _threadsStart = false;
-
-    int _demodMode = Constants::DemodulateMode::NFM;
-    quint32 _bandwidth = 8000;
+    radio_settings_t _radio_settings;
 
     void refresh_devices();
 
-    void update_frequency_range(uint32_t minFreq, uint32_t maxFreq);
+    void update_frequency_range();
 
     int pick_scale_index(uint32_t freq);
 
     double apply_scale(uint32_t freq, int scaleIndex);
+
+    void set_defaults();
+
+    sdr_config_t create_sdr_config();
 };
 
 #endif // SDR_BACKEND_H

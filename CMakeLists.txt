@@ -65,11 +65,13 @@ qt_add_qml_module(appsdr_qt
         src/core/rtl_reader_thread.cpp
         src/core/rtl_fft_thread.h
         src/core/rtl_fft_thread.cpp
-
-
+        src/core/spectrum.h
+        src/core/spectrum.cpp
+        src/core/Signal.h
+        src/core/Signal.cpp
     RESOURCES
         fonts/Figtree-VariableFont_wght.ttf
-        SOURCES src/core/spectrum.h src/core/spectrum.cpp
+        SOURCES src/core/demodulator.h src/core/demodulator.cpp
 )
 
 # Qt for iOS sets MACOSX_BUNDLE_GUI_IDENTIFIER automatically since Qt 6.1.

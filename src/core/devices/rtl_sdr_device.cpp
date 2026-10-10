@@ -225,6 +225,8 @@ int RtlSdrDevice::sdr_set_sampling_mode(sampling_mode_t mode) {
 int RtlSdrDevice::sdr_set_rtl_agc(bool val) {
     assert(handler != nullptr && "handler is NULL! You may forgot to call sdr_init()");
 
+    if (_config.rtlagc == val) return 0;
+
     int rc = rtlsdr_set_agc_mode(handler, val ? 1 : 0);
 
     if (rc < 0) return -1;
@@ -236,6 +238,8 @@ int RtlSdrDevice::sdr_set_rtl_agc(bool val) {
 
 int RtlSdrDevice::sdr_set_offset_tuning(bool val) {
     assert(handler != nullptr && "handler is NULL! You may forgot to call sdr_init()");
+
+    if (_config.offsetTuning == val) return 0;
 
     int rc = rtlsdr_set_offset_tuning(handler, val ? 1 : 0);
 
@@ -249,6 +253,8 @@ int RtlSdrDevice::sdr_set_offset_tuning(bool val) {
 int RtlSdrDevice::sdr_set_tuner_agc(bool val) {
     assert(handler != nullptr && "handler is NULL! You may forgot to call sdr_init()");
 
+    if (_config.tunerAGC == val) return 0;
+
     int rc = rtlsdr_set_tuner_gain_mode(handler, val ? 1 : 0);
 
     if (rc < 0) return -1;
@@ -260,6 +266,8 @@ int RtlSdrDevice::sdr_set_tuner_agc(bool val) {
 
 int RtlSdrDevice::sdr_set_bias_tee(bool val) {
     assert(handler != nullptr && "handler is NULL! You may forgot to call sdr_init()");
+
+    if (_config.biasTee == val) return 0;
 
     int rc = rtlsdr_set_bias_tee(handler, val ? 1: 0);
 
@@ -273,6 +281,8 @@ int RtlSdrDevice::sdr_set_bias_tee(bool val) {
 int RtlSdrDevice::sdr_set_shift(bool val) {
     assert(handler != nullptr && "handler is NULL! You may forgot to call sdr_init()");
 
+    if (_config.shift == val) return 0;
+
     _config.shift = val;
 
     return 0;
@@ -281,6 +291,8 @@ int RtlSdrDevice::sdr_set_shift(bool val) {
 int RtlSdrDevice::sdr_set_correct_IQ(bool val) {
     assert(handler != nullptr && "handler is NULL! You may forgot to call sdr_init()");
 
+    if (_config.correctIQ == val) return 0;
+
     _config.correctIQ = val;
 
     return 0;
@@ -288,6 +300,8 @@ int RtlSdrDevice::sdr_set_correct_IQ(bool val) {
 
 int RtlSdrDevice::sdr_set_invert_spectrum(bool val) {
     assert(handler != nullptr && "handler is NULL! You may forgot to call sdr_init()");
+
+    if (_config.invertSpectrum == val) return 0;
 
     _config.invertSpectrum = val;
 

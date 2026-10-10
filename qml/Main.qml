@@ -329,19 +329,27 @@ ApplicationWindow {
 
                                     SdrCheckBox {
                                         text: "RTL AGC"
+                                        checked: sdr.rtlagc
+                                        onToggled: sdr.setRtlAGC
                                     }
 
                                     SdrCheckBox {
                                         text: "Offset Tuning"
+                                        checked: sdr.offsetTuning
+                                        onToggled: sdr.setOffsetTuning
                                     }
 
                                     SdrCheckBox {
                                         id: tunerAGC
                                         text: "Tuner AGC"
+                                        checked: sdr.tunerAGC
+                                        onToggled: sdr.setTunerAGC
                                     }
 
                                     SdrCheckBox {
                                         text: "Bias-Tee"
+                                        checked: sdr.biasTee
+                                        onToggled: sdr.setBiasTee
                                     }
                                 }
 
@@ -400,7 +408,7 @@ ApplicationWindow {
                                         Layout.preferredWidth: 80
                                         Layout.fillWidth: false
 
-                                        text: "0"
+                                        text: sdr.correctionPPM
                                         color: "#EBECEE"
 
                                         background: Rectangle {
@@ -411,6 +419,13 @@ ApplicationWindow {
                                         }
 
                                         inputMethodHints: Qt.ImhFormattedNumbersOnly
+                                        onEditingFinished: {
+                                            const correctionPPM = parseInt(text)
+
+                                            if (!isNaN(correctionPPM)) {
+                                                sdr.setCorrectionPPM(correctionPPM)
+                                            }
+                                        }
                                     }
                                 }
 
@@ -433,7 +448,7 @@ ApplicationWindow {
                                         Layout.preferredWidth: 80
                                         Layout.fillWidth: false
                                         visible: shiftCheckbox.checked
-                                        text: "0"
+                                        text: sdr.shiftAmount
                                         color: "#EBECEE"
 
                                         background: Rectangle {
@@ -444,6 +459,13 @@ ApplicationWindow {
                                         }
 
                                         inputMethodHints: Qt.ImhFormattedNumbersOnly
+                                        onEditingFinished: {
+                                            const shiftAmount = parseInt(text)
+
+                                            if (!isNaN(shiftAmount)) {
+                                                sdr.setShiftAmount(shiftAmount)
+                                            }
+                                        }
                                     }
                                 }
 
@@ -455,10 +477,14 @@ ApplicationWindow {
 
                                     SdrCheckBox {
                                         text: "CIQ"
+                                        checked: sdr.correctIQ
+                                        onToggled: sdr.setCorrectIQ
                                     }
 
                                     SdrCheckBox {
                                         text: "Invert Spectrum"
+                                        checked: sdr.invertSpectrum
+                                        onToggled: sdr.setInvertSpectrum
                                     }
                                 }
                             }
@@ -536,10 +562,8 @@ ApplicationWindow {
                                         }
 
                                         inputMethodHints: Qt.ImhFormattedNumbersOnly
-                                        onTextEdited: {
-                                            console.log(text)
-
-                                            const bandwith = parseInt(text)
+                                        onEditingFinished: {
+                                            const bandwidth = parseInt(text)
 
                                             if (!isNaN(bandwidth)) {
                                                 sdr.setBandwidth(bandwidth)
@@ -556,6 +580,8 @@ ApplicationWindow {
                                     SdrCheckBox {
                                         id: squelch
                                         text: "Squelch"
+                                        checked: sdr.squelch
+                                        onToggled: sdr.setSquelch
                                     }
 
                                     Item { Layout.fillWidth: true }
@@ -566,7 +592,7 @@ ApplicationWindow {
                                         Layout.fillWidth: false
                                         visible: squelch.checked
 
-                                        text: "0"
+                                        text: sdr.squelchAmount
                                         color: "#EBECEE"
 
                                         background: Rectangle {
@@ -577,6 +603,13 @@ ApplicationWindow {
                                         }
 
                                         inputMethodHints: Qt.ImhFormattedNumbersOnly
+                                        onEditingFinished: {
+                                            const squelchAmount = parseInt(text)
+
+                                            if (!isNaN(squelchAmount)) {
+                                                sdr.setSquelchAmount(squelchAmount)
+                                            }
+                                        }
                                     }
                                 }
 
@@ -599,7 +632,7 @@ ApplicationWindow {
                                         Layout.preferredWidth: 80
                                         Layout.fillWidth: false
 
-                                        text: "0"
+                                        text: sdr.cwShiftAmount
                                         color: "#EBECEE"
 
                                         background: Rectangle {
@@ -610,6 +643,13 @@ ApplicationWindow {
                                         }
 
                                         inputMethodHints: Qt.ImhFormattedNumbersOnly
+                                        onEditingFinished: {
+                                            const cwShiftAmount = parseInt(text)
+
+                                            if (!isNaN(cwShiftAmount)) {
+                                                sdr.setCWShiftAmount(cwShiftAmount)
+                                            }
+                                        }
                                     }
                                 }
 
@@ -620,18 +660,26 @@ ApplicationWindow {
 
                                     SdrCheckBox {
                                         text: "Binaural"
+                                        checked: sdr.binaural
+                                        onToggled: sdr.setBinaural
                                     }
 
                                     SdrCheckBox {
                                         text: "Anti-Fading"
+                                        checked: sdr.antiFading
+                                        onToggled: sdr.setAntiFading
                                     }
 
                                     SdrCheckBox {
                                         text: "Lock Carrier"
+                                        checked: sdr.lockCarrier
+                                        onToggled: sdr.setLockCarrier
                                     }
 
                                     SdrCheckBox {
                                         text: "Sticky Lock"
+                                        checked: sdr.stickyLock
+                                        onToggled: sdr.setStickyLock
                                     }
                                 }
 

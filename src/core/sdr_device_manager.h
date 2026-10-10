@@ -60,6 +60,12 @@ public:
     int init_current_device();
 
     int destroy_current_device();
+
+    int init_device_with_config(int deviceIndex, sdr_config_t initConfig);
+
+    int devices_count() const { return static_cast<int>(_availableDevices.size()); }
+
+    bool device_empty() const { return this->_currentDevice == nullptr; }
 };
 
 #endif // SDR_DEVICE_MANAGER_H

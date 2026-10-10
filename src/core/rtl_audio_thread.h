@@ -44,6 +44,7 @@ private:
 
     std::mutex _m;
     std::condition_variable _cv;
+
     bool _paused = false;
     bool _stop = false;
     bool _init = false;
@@ -56,15 +57,17 @@ private:
     std::vector<std::complex<float>> shifted;
     bool _hasLastSample = false;
     FastDecimator* _dec = nullptr;
+    float _carrier = 0.0f;
 
     uint32_t _sampleRate = Constants::SampleRate::RATE_2_4_MSPS;
     uint32_t _bandwidth = 8000;
     int _demod = Constants::DemodulateMode::NFM;
     double _offsetFreq = 0;
+
     std::complex<double> _rot{1.0, 0.0};
     std::complex<double> _rotStep{1.0, 0.0};
 
-    std::vector<float> make_filter(const uint32_t fPass, const uint32_t fStop, const uint32_t sampleRate);
+    // std::vector<float> make_filter(const uint32_t fPass, const uint32_t fStop, const uint32_t sampleRate);
 
     bool init();
 
