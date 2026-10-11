@@ -7,8 +7,14 @@
 #include <QMediaDevices>
 
 #include "core/chunkqueue.h"
-#include "core/fast_decimator.h"
 #include "core/Constants.h"
+#include "core/mixer.h"
+#include "core/audiooutput.h"
+#include "core/demodulators/demodulator.h"
+
+enum class DemodMode {
+    NONE, AM, NFM
+};
 
 class RtlAudioThread : public QThread
 {
@@ -16,8 +22,12 @@ public:
     RtlAudioThread(ChunkQueue* q, ChunkQueue* decimatedQueue, QObject* parent) :
         QThread(parent),
         _q(q),
-        _decimatedQueue(decimatedQueue)
-    {}
+        _decimatedQueue(decimatedQueue),
+        _mixer(),
+        _audioOutput()
+    {
+        _demod = make_demodulator(DemodMode::NFM);
+    }
 
     void pause();
 
@@ -25,57 +35,40 @@ public:
 
     void resume();
 
-    uint32_t bandwidth() const { return _bandwidth; }
+    void setSampleRate(uint32_t sampleRate);
 
-    void setSampleRate(uint32_t sampleRate) { this->_sampleRate = sampleRate; }
+    void setBandwidth(uint32_t bw);
 
-    void setBandwidth(uint32_t bw) { this->_bandwidth = bw; _init = false; }
-
-    void setDemodMode(int mode) { this->_demod = mode; }
+    void setDemodMode(int mode);
 
     void setOffsetFreq(double offset);
-
 protected:
     void run() override;
 
 private:
+    bool _paused = false;
+    bool _stop = false;
+
     ChunkQueue* _q = nullptr;
     ChunkQueue* _decimatedQueue = nullptr;
 
     std::mutex _m;
     std::condition_variable _cv;
 
-    bool _paused = false;
-    bool _stop = false;
-    bool _init = false;
+    Mixer _mixer;
+    AudioOutput _audioOutput;
 
-    QAudioSink *audioSink = nullptr;
-    QIODevice *audioDevice = nullptr;
-    std::vector<int16_t> _audioOutputBuffer;
-    std::complex<float> _lastDecimatedSample = 0;
-    std::vector<std::complex<float>> decimated;
-    std::vector<std::complex<float>> shifted;
-    bool _hasLastSample = false;
-    FastDecimator* _dec = nullptr;
-    float _carrier = 0.0f;
+    std::atomic<DemodMode> _requestMode{DemodMode::NFM};
+    DemodMode _activeMode = DemodMode::NONE;
+    std::unique_ptr<Demodulator> _demod = nullptr;
+
+    std::vector<std::complex<float>> _shifted;
+    std::vector<float> _audio;
 
     uint32_t _sampleRate = Constants::SampleRate::RATE_2_4_MSPS;
     uint32_t _bandwidth = 8000;
-    int _demod = Constants::DemodulateMode::NFM;
-    double _offsetFreq = 0;
 
-    std::complex<double> _rot{1.0, 0.0};
-    std::complex<double> _rotStep{1.0, 0.0};
-
-    // std::vector<float> make_filter(const uint32_t fPass, const uint32_t fStop, const uint32_t sampleRate);
-
-    bool init();
-
-    void shift(const std::complex<float>* data, size_t size, std::vector<std::complex<float>>& out);
-
-    void demodulate();
-
-    void demodulate_am();
+    std::unique_ptr<Demodulator> make_demodulator(DemodMode m);
 
     void read();
 };

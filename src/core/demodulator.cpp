@@ -6,6 +6,4 @@ void Demodulator::demodulate_nfm(const std::complex<float>* data, size_t size, s
     assert(_decimatedStep > 0 && "Decimated step must larger than zero");
 
     if (size == 0) return;
-
-
 }

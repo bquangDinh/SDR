@@ -50,6 +50,10 @@ namespace Signal {
         );
     }
 
+    namespace Utils {
+        std::vector<float> make_lowpass(uint32_t sampleRate, uint32_t passband, uint32_t stopband);
+    }
+
     namespace Internal {
         namespace Filters {
             float windowValue(filter_window_arg window, int n, int N);

@@ -3,6 +3,21 @@
 #include <math.h>
 #include "cassert"
 
+std::vector<float> Signal::Utils::make_lowpass(uint32_t sampleRate, uint32_t passband, uint32_t stopband) {
+    auto [numTaps, beta] = Signal::Filters::kaisercord(60, stopband - passband, sampleRate);
+
+    std::vector<float> taps(numTaps);
+
+    filter_window_arg window = {
+        .windowType = WindowType::Kaiser,
+        .beta = beta
+    };
+
+    Signal::Filters::firwin(taps, numTaps, (stopband + passband) / 2.0f, window, sampleRate);
+
+    return taps;
+}
+
 kaiser_ret_params Signal::Filters::kaisercord(float ripple, float width, uint32_t sampleRate) {
     assert(ripple >= 8.0f && "attenuation must be at least 8 dB");
 

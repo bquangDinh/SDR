@@ -72,6 +72,13 @@ qt_add_qml_module(appsdr_qt
     RESOURCES
         fonts/Figtree-VariableFont_wght.ttf
         SOURCES src/core/demodulator.h src/core/demodulator.cpp
+        SOURCES src/core/mixer.h src/core/mixer.cpp
+        SOURCES src/core/audiooutput.h src/core/audiooutput.cpp
+        SOURCES src/core/demodulators/demodulator.h src/core/demodulators/demodulator.cpp
+        SOURCES src/core/demodulators/nfmdemod.h src/core/demodulators/nfmdemod.cpp
+        SOURCES src/core/fm_discriminator.h src/core/fm_discriminator.cpp
+        SOURCES src/core/demodulators/amdemod.h src/core/demodulators/amdemod.cpp
+        SOURCES src/core/am_discriminator.h src/core/am_discriminator.cpp
 )
 
 # Qt for iOS sets MACOSX_BUNDLE_GUI_IDENTIFIER automatically since Qt 6.1.

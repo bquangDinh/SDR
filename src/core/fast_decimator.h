@@ -12,6 +12,8 @@ public:
     {}
 
     void process(const std::complex<float>* in, size_t n, std::vector<std::complex<float>>& out);
+
+    void reset() {}
 private:
     std::vector<float> r_taps; // reverse taps
     size_t _d; // decimation step
