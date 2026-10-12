@@ -774,7 +774,7 @@ ApplicationWindow {
 
                             property real sampleRate: sdr.sampleRate            // must match the SDR
                             property real centerHz: sdr.centerFreq            // hardware center frequency
-                            property real channelWidthHz: 8000          // your ±8 kHz channel filter
+                            property real channelWidthHz: sdr.bandwidth          // your ±8 kHz channel filter
                             property real offsetHz: 0                    // selected channel, relative to center
                             readonly property real hzPerPixel: sampleRate / width
 

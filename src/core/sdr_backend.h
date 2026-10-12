@@ -103,17 +103,13 @@ public:
 
     QVariantList sampleRateOptions() const {
         static const QVariantList options = {
-            QVariantMap{{"text", "3.2 MSPS"},      {"value", Constants::SampleRate::RATE_3_2_MSPS}},
-            QVariantMap{{"text", "2.8 MSPS"},      {"value", Constants::SampleRate::RATE_2_8_MSPS}},
-            QVariantMap{{"text", "2.56 MSPS"},     {"value", Constants::SampleRate::RATE_2_56_MSPS}},
-            QVariantMap{{"text", "2.4 MSPS"},      {"value", Constants::SampleRate::RATE_2_4_MSPS}},
-            QVariantMap{{"text", "2.048 MSPS"},    {"value", Constants::SampleRate::RATE_2_048_MSPS}},
-            QVariantMap{{"text", "1.92 MSPS"},     {"value", Constants::SampleRate::RATE_1_92_MSPS}},
-            QVariantMap{{"text", "1.8 MSPS"},      {"value", Constants::SampleRate::RATE_1_8_MSPS}},
-            QVariantMap{{"text", "1.4 MSPS"},      {"value", Constants::SampleRate::RATE_1_4_MSPS}},
-            QVariantMap{{"text", "1.024 MSPS"},    {"value", Constants::SampleRate::RATE_1_024_MSPS}},
-            QVariantMap{{"text", "0.900001 MSPS"}, {"value", Constants::SampleRate::RATE_0_900001_MSPS}},
-            QVariantMap{{"text", "0.25 MSPS"},     {"value", Constants::SampleRate::RATE_0_25_MSPS}}
+            QVariantMap{{"text", "3.36 MSPS"},      {"value", Constants::SampleRate::RATE_3_36_MSPS}},
+            QVariantMap{{"text", "2.88 MSPS"},      {"value", Constants::SampleRate::RATE_2_88_MSPS}},
+            QVariantMap{{"text", "2.4 MSPS"},       {"value", Constants::SampleRate::RATE_2_4_MSPS}},
+            QVariantMap{{"text", "1.92 MSPS"},      {"value", Constants::SampleRate::RATE_1_92_MSPS}},
+            QVariantMap{{"text", "1.44 MSPS"},      {"value", Constants::SampleRate::RATE_1_44_MSPS}},
+            QVariantMap{{"text", "1.2 MSPS"},       {"value", Constants::SampleRate::RATE_1_2_MSPS}},
+            QVariantMap{{"text", "0.96 MSPS"},      {"value", Constants::SampleRate::RATE_0_96_MSPS}},
         };
         return options;
     }

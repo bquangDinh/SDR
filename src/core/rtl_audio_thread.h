@@ -13,7 +13,7 @@
 #include "core/demodulators/demodulator.h"
 
 enum class DemodMode {
-    NONE, AM, NFM
+    NONE, AM, NFM, WFM
 };
 
 class RtlAudioThread : public QThread

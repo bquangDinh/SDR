@@ -1,17 +1,19 @@
 #ifndef AMDEMOD_H
 #define AMDEMOD_H
 
+#include <memory>
+
 #include "core/demodulators/demodulator.h"
 #include "core/fast_decimator.h"
 #include "core/am_discriminator.h"
 
-class AMDemod : public Demodulator
+class AmDemod : public Demodulator
 {
 public:
     static constexpr uint32_t PASSBAND = 8e3;
     static constexpr uint32_t STOPBAND = 24e3;
 
-    AMDemod() {}
+    AmDemod() {}
 
     void process(const std::complex<float>* in, size_t n, std::vector<float>& out) override;
 
@@ -25,8 +27,9 @@ protected:
     bool init() override;
 
 private:
-    FastDecimator* _dec = nullptr;
-    AmDiscriminator* _am = nullptr;
+    std::unique_ptr<FastDecimator> _dec;
+    std::unique_ptr<AmDiscriminator> _am;
+
     float _carrier = 0;
     const float _fc = 30.0f;
     float b1, a0;

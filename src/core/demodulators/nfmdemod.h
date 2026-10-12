@@ -1,6 +1,8 @@
 #ifndef NFMDEMOD_H
 #define NFMDEMOD_H
 
+#include <memory>
+
 #include "core/demodulators/demodulator.h"
 #include "core/fast_decimator.h"
 #include "core/fm_discriminator.h"
@@ -24,11 +26,10 @@ public:
 protected:
     bool init() override;
 private:
-    FastDecimator* _dec = nullptr;
-    FmDiscriminator* _fm = nullptr;
+    std::unique_ptr<FastDecimator> _dec;
+    std::unique_ptr<FmDiscriminator> _fm;
 
     std::vector<std::complex<float>> _iq;
-
 };
 
 #endif // NFMDEMOD_H

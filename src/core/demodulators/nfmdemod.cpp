@@ -53,8 +53,8 @@ bool NfmDemod::init() {
 
     std::vector<float> taps = Signal::Utils::make_lowpass(_inSampleRate, PASSBAND, STOPBAND);
 
-    _dec = new FastDecimator(taps, decimatedStep);
-    _fm = new FmDiscriminator(_outSampleRate, MAX_DEVIATION);
+    _dec = std::make_unique<FastDecimator>(taps, decimatedStep);
+    _fm = std::make_unique<FmDiscriminator>(_outSampleRate, MAX_DEVIATION);
 
     return true;
 }

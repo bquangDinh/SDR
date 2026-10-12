@@ -4,6 +4,7 @@
 
 #include "core/demodulators/amdemod.h"
 #include "core/demodulators/nfmdemod.h"
+#include "core/demodulators/wfmdemod.h"
 
 void RtlAudioThread::pause() {
     {
@@ -70,6 +71,8 @@ void RtlAudioThread::setDemodMode(int mode) {
         _requestMode = DemodMode::NFM;
     } else if (mode == Constants::DemodulateMode::AM) {
         _requestMode = DemodMode::AM;
+    } else if (mode == Constants::DemodulateMode::WFM) {
+        _requestMode = DemodMode::WFM;
     } else {
         _requestMode = DemodMode::NFM;
     }
@@ -126,9 +129,11 @@ void RtlAudioThread::read() {
 std::unique_ptr<Demodulator> RtlAudioThread::make_demodulator(DemodMode m) {
     switch (m) {
         case DemodMode::AM:
-            return std::make_unique<AMDemod>();
+            return std::make_unique<AmDemod>();
         case DemodMode::NFM:
             return std::make_unique<NfmDemod>();
+        case DemodMode::WFM:
+            return std::make_unique<WfmDemod>();
         case DemodMode::NONE:
             return nullptr;
     }

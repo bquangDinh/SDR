@@ -5,17 +5,14 @@
 
 namespace Constants {
     namespace SampleRate {
-        constexpr uint32_t RATE_3_2_MSPS   = 3200000;
-        constexpr uint32_t RATE_2_8_MSPS   = 2800000;
-        constexpr uint32_t RATE_2_56_MSPS  = 2560000;
-        constexpr uint32_t RATE_2_4_MSPS   = 2400000;
-        constexpr uint32_t RATE_2_048_MSPS = 2048000;
-        constexpr uint32_t RATE_1_92_MSPS  = 1920000;
-        constexpr uint32_t RATE_1_8_MSPS   = 1800000;
-        constexpr uint32_t RATE_1_4_MSPS   = 1400000;
-        constexpr uint32_t RATE_1_024_MSPS = 1024000;
-        constexpr uint32_t RATE_0_900001_MSPS = 900001;
-        constexpr uint32_t RATE_0_25_MSPS  = 250000;
+        // Sample rates that are divisible by 48000 audio rate
+        constexpr uint32_t RATE_0_96_MSPS = 960000;
+        constexpr uint32_t RATE_1_2_MSPS = 1200000;
+        constexpr uint32_t RATE_1_44_MSPS = 1440000;
+        constexpr uint32_t RATE_1_92_MSPS = 1920000;
+        constexpr uint32_t RATE_2_4_MSPS = 2400000;
+        constexpr uint32_t RATE_2_88_MSPS = 2880000;
+        constexpr uint32_t RATE_3_36_MSPS = 3360000;
     }
 
     namespace DemodulateMode {

@@ -2,7 +2,7 @@
 
 #include <QDebug>
 
-void AMDemod::process(const std::complex<float>* in, size_t n, std::vector<float>& out) {
+void AmDemod::process(const std::complex<float>* in, size_t n, std::vector<float>& out) {
     if (_dirty) {
         if (init()) _dirty = false;
         else {
@@ -28,7 +28,7 @@ void AMDemod::process(const std::complex<float>* in, size_t n, std::vector<float
     if (_cb) _cb(_iq.data(), _iq.size());
 }
 
-void AMDemod::reset() {
+void AmDemod::reset() {
     // Force reset init
     _dirty = true;
 
@@ -36,7 +36,7 @@ void AMDemod::reset() {
     if (_am) _am->reset();
 }
 
-bool AMDemod::init() {
+bool AmDemod::init() {
     if (_inSampleRate == 0 || _outSampleRate == 0) {
         qDebug() << "Demod: You forgot to set input sample rate or output sample rate";
 
@@ -59,8 +59,8 @@ bool AMDemod::init() {
 
     std::vector<float> taps = Signal::Utils::make_lowpass(_inSampleRate, PASSBAND, STOPBAND);
 
-    _dec = new FastDecimator(taps, decimatedStep);
-    _am = new AmDiscriminator();
+    _dec = std::make_unique<FastDecimator>(taps, decimatedStep);
+    _am = std::make_unique<AmDiscriminator>();
 
     b1 = std::exp(-2.0f * float(M_PI) * _fc / _outSampleRate);
     a0 = 1.0f - b1;
