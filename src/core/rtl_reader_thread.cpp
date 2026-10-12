@@ -72,12 +72,26 @@ void RtlReaderThread::read() {
     // Make new chunk
     auto chunk = std::make_shared<std::vector<std::complex<float>>>(n);
 
+    float I, Q;
+
     for (size_t i = 0; i < n; ++i) {
         // Skip boundary check here, could be bug if not careful
-        (*chunk)[i] = {
-            (buf[2 * i]     - 127.5f) / 127.5f,
-            (buf[2 * i + 1] - 127.5f) / 127.5f
-        };
+        I = (buf[2 * i]     - 127.5f) / 127.5f;
+        Q = (buf[2 * i + 1] - 127.5f) / 127.5f;
+
+        if (_correctIQ) {
+            _muI += _alpha * (I - _muI);
+            _muQ += _alpha * (Q - _muQ);
+
+            I -= _muI;
+            Q -= _muQ;
+        }
+
+        if (_invertSpectrum) {
+            std::swap(I, Q);
+        }
+
+        (*chunk)[i] = {I, Q};
     }
 
     Chunk c = chunk;

@@ -146,11 +146,18 @@ float Signal::Internal::Filters::windowValue(filter_window_arg window, int n, in
 //     }
 // }
 
-template <typename T>
-std::vector<T> Signal::General::decimate(const T* data, size_t size, size_t d) {
-    std::vector<T> out(size / d);
+// template <typename T>
+// std::vector<T> Signal::General::decimate(const T* data, size_t size, size_t d) {
+//     std::vector<T> out(size / d);
 
-    for (size_t i = 0, k = 0; i < size; i += d) out[k++] = data[i];
+//     for (size_t i = 0; i < size; ++i) out[i] = data[i * d];
 
-    return out;
-}
+//     return out;
+// }
+
+// template <typename T>
+// void Signal::General::upsample(const T* data, size_t size, size_t d, std::vector<T>& out) {
+//     out.assign(size * d, 0);
+
+//     for (size_t i = 0; i < size; ++i) out[i * d] = data[i];
+// }

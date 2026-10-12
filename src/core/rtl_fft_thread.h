@@ -24,8 +24,7 @@ public:
 
     void stop();
 
-    void resume();
-
+    void resume();    
 signals:
     void spectrumReady(QList<double> data);
     void narrowSpectrumReady(QList<double> data);

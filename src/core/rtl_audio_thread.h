@@ -13,7 +13,7 @@
 #include "core/demodulators/demodulator.h"
 
 enum class DemodMode {
-    NONE, AM, NFM, WFM
+    NONE, AM, NFM, WFM, LSB, USB, DSB, CW, RAW
 };
 
 class RtlAudioThread : public QThread
@@ -42,6 +42,8 @@ public:
     void setDemodMode(int mode);
 
     void setOffsetFreq(double offset);
+
+    void setCWShiftAmount(int cwShiftAmount);
 protected:
     void run() override;
 

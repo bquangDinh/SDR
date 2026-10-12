@@ -330,26 +330,26 @@ ApplicationWindow {
                                     SdrCheckBox {
                                         text: "RTL AGC"
                                         checked: sdr.rtlagc
-                                        onToggled: sdr.setRtlAGC
+                                        onToggled: sdr.setRtlAGC(checked)
                                     }
 
                                     SdrCheckBox {
                                         text: "Offset Tuning"
                                         checked: sdr.offsetTuning
-                                        onToggled: sdr.setOffsetTuning
+                                        onToggled: sdr.setOffsetTuning(checked)
                                     }
 
                                     SdrCheckBox {
                                         id: tunerAGC
                                         text: "Tuner AGC"
                                         checked: sdr.tunerAGC
-                                        onToggled: sdr.setTunerAGC
+                                        onToggled: sdr.setTunerAGC(checked)
                                     }
 
                                     SdrCheckBox {
                                         text: "Bias-Tee"
                                         checked: sdr.biasTee
-                                        onToggled: sdr.setBiasTee
+                                        onToggled: sdr.setBiasTee(checked)
                                     }
                                 }
 
@@ -370,15 +370,17 @@ ApplicationWindow {
                                         Item { Layout.fillWidth: true }
 
                                         Label {
-                                            text: gainSlider.value.toFixed(0) + " dB"
+                                            text: !tunerAGC.checked ? gainSlider.value.toFixed(0) + " dB" : "Disabled"
                                             color: "#010C15"
                                             font.family: figtreeFont.name
                                             font.pixelSize: 14
+                                            font.italic: tunerAGC.checked
                                         }
                                     }
 
                                     SdrSlider {
                                         id: gainSlider
+                                        opacity: !tunerAGC.checked ? 1 : 0.5
                                         Layout.fillWidth: true
                                         from: 0
                                         to: 50
@@ -437,6 +439,8 @@ ApplicationWindow {
                                     SdrCheckBox {
                                         id: shiftCheckbox
                                         text: "Shift"
+                                        checked: sdr.shift
+                                        onToggled: sdr.setShift(checked)
                                     }
 
                                     Item {
@@ -478,13 +482,13 @@ ApplicationWindow {
                                     SdrCheckBox {
                                         text: "CIQ"
                                         checked: sdr.correctIQ
-                                        onToggled: sdr.setCorrectIQ
+                                        onToggled: sdr.setCorrectIQ(checked)
                                     }
 
                                     SdrCheckBox {
                                         text: "Invert Spectrum"
                                         checked: sdr.invertSpectrum
-                                        onToggled: sdr.setInvertSpectrum
+                                        onToggled: sdr.setInvertSpectrum(checked)
                                     }
                                 }
                             }
@@ -581,7 +585,7 @@ ApplicationWindow {
                                         id: squelch
                                         text: "Squelch"
                                         checked: sdr.squelch
-                                        onToggled: sdr.setSquelch
+                                        onToggled: sdr.setSquelch(checked)
                                     }
 
                                     Item { Layout.fillWidth: true }
@@ -661,25 +665,25 @@ ApplicationWindow {
                                     SdrCheckBox {
                                         text: "Binaural"
                                         checked: sdr.binaural
-                                        onToggled: sdr.setBinaural
+                                        onToggled: sdr.setBinaural(checked)
                                     }
 
                                     SdrCheckBox {
                                         text: "Anti-Fading"
                                         checked: sdr.antiFading
-                                        onToggled: sdr.setAntiFading
+                                        onToggled: sdr.setAntiFading(checked)
                                     }
 
                                     SdrCheckBox {
                                         text: "Lock Carrier"
                                         checked: sdr.lockCarrier
-                                        onToggled: sdr.setLockCarrier
+                                        onToggled: sdr.setLockCarrier(checked)
                                     }
 
                                     SdrCheckBox {
                                         text: "Sticky Lock"
                                         checked: sdr.stickyLock
-                                        onToggled: sdr.setStickyLock
+                                        onToggled: sdr.setStickyLock(checked)
                                     }
                                 }
 
@@ -727,8 +731,8 @@ ApplicationWindow {
                                     Layout.fillHeight: true
 
                                     axisX: ValueAxis {
-                                        min: sdr.minFreqScaled
-                                        max: sdr.maxFreqScaled
+                                        min: sdr.minFreqScaled + (sdr.shift ? (sdr.shiftAmount / sdr.freqScale) : 0)
+                                        max: sdr.maxFreqScaled + (sdr.shift ? (sdr.shiftAmount / sdr.freqScale) : 0)
                                         titleText: "Frequency (%1)".arg(sdr.freqScaleLabel)
                                     }
 

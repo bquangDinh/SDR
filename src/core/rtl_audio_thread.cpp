@@ -5,6 +5,11 @@
 #include "core/demodulators/amdemod.h"
 #include "core/demodulators/nfmdemod.h"
 #include "core/demodulators/wfmdemod.h"
+#include "core/demodulators/cwdemod.h"
+#include "core/demodulators/dsbdemod.h"
+#include "core/demodulators/lsbdemod.h"
+#include "core/demodulators/usbdemod.h"
+#include "core/demodulators/rawdemod.h"
 
 void RtlAudioThread::pause() {
     {
@@ -50,6 +55,12 @@ void RtlAudioThread::setOffsetFreq(double offset) {
     _mixer.setOffsetFreq(offset);
 }
 
+void RtlAudioThread::setCWShiftAmount(int cwShiftAmount) {
+    if (_demod) {
+        _demod->set_cw_shift(cwShiftAmount);
+    }
+}
+
 void RtlAudioThread::setSampleRate(uint32_t sampleRate) {
     if (_sampleRate == sampleRate) return;
 
@@ -71,8 +82,18 @@ void RtlAudioThread::setDemodMode(int mode) {
         _requestMode = DemodMode::NFM;
     } else if (mode == Constants::DemodulateMode::AM) {
         _requestMode = DemodMode::AM;
+    } else if (mode == Constants::DemodulateMode::LSB) {
+        _requestMode = DemodMode::LSB;
+    } else if (mode == Constants::DemodulateMode::USB) {
+        _requestMode = DemodMode::USB;
     } else if (mode == Constants::DemodulateMode::WFM) {
         _requestMode = DemodMode::WFM;
+    } else if (mode == Constants::DemodulateMode::DSB) {
+        _requestMode = DemodMode::DSB;
+    } else if (mode == Constants::DemodulateMode::CW) {
+        _requestMode = DemodMode::CW;
+    } else if (mode == Constants::DemodulateMode::RAW) {
+        _requestMode = DemodMode::RAW;
     } else {
         _requestMode = DemodMode::NFM;
     }
@@ -134,6 +155,16 @@ std::unique_ptr<Demodulator> RtlAudioThread::make_demodulator(DemodMode m) {
             return std::make_unique<NfmDemod>();
         case DemodMode::WFM:
             return std::make_unique<WfmDemod>();
+        case DemodMode::LSB:
+            return std::make_unique<LsbDemod>();
+        case DemodMode::USB:
+            return std::make_unique<UsbDemod>();
+        case DemodMode::DSB:
+            return std::make_unique<DsbDemod>();
+        case DemodMode::CW:
+            return std::make_unique<CwDemod>();
+        case DemodMode::RAW:
+            return std::make_unique<RawDemod>();
         case DemodMode::NONE:
             return nullptr;
     }

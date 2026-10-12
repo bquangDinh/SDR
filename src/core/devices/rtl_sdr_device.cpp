@@ -202,6 +202,7 @@ int RtlSdrDevice::sdr_set_correction_ppm(int correctionPPM) {
     return 0;
 }
 
+// TODO: remove | shift has nothing to do with hardware
 int RtlSdrDevice::sdr_set_shift_amount(int32_t shift) {
     assert(handler != nullptr && "handler is NULL! You may forgot to call sdr_init()");
 

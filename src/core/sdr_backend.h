@@ -40,6 +40,7 @@ typedef struct device_settings {
     bool shift;
     bool correctIQ;
     bool invertSpectrum;
+    quint32 freqScale;
 } device_settings_t;
 
 typedef struct radio_settings {
@@ -92,6 +93,7 @@ class SdrBackend : public QObject {
     Q_PROPERTY(bool antiFading READ antiFading WRITE setAntiFading NOTIFY antiFadingChanged)
     Q_PROPERTY(bool lockCarrier READ lockCarrier WRITE setLockCarrier NOTIFY lockCarrierChanged)
     Q_PROPERTY(bool stickyLock READ stickyLock WRITE setStickyLock NOTIFY stickyLockChanged)
+    Q_PROPERTY(quint32 freqScale READ freqScale NOTIFY freqScaleChanged)
 public:
     QVariantList sourceOptions() const {
         static const QVariantList options = {
@@ -234,6 +236,8 @@ public:
 
     bool stickyLock() const { return _radio_settings.stickyLock; }
 
+    quint32 freqScale() const { return _device_settings.freqScale; }
+
     Q_INVOKABLE void setSource(int source);
 
     Q_INVOKABLE void setDevice(int deviceIndex);
@@ -318,6 +322,7 @@ signals:
     void antiFadingChanged();
     void lockCarrierChanged();
     void stickyLockChanged();
+    void freqScaleChanged();
 private:
     ChunkQueue* _chunkQueue = nullptr;
     LatestChunk* _latestChunk = nullptr;

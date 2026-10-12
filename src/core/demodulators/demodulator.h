@@ -21,11 +21,16 @@ public:
 
     void set_output_sample_rate(uint32_t sampleRate) { this->_outSampleRate = sampleRate; _dirty = true; }
 
+    void set_cw_shift(int shift) { this->_cwShift = shift; _dirty = true; }
+
     void connect_decimated_callback(DecimatedCallback cb) { this->_cb = std::move(cb); }
 protected:
     virtual bool init() = 0;
 
     uint32_t _inSampleRate = 0, _outSampleRate = 0;
+
+    // Only use for CW demod
+    int _cwShift = 0;
 
     bool _dirty = true;
 

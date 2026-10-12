@@ -35,8 +35,11 @@ namespace Signal {
         //     std::vector<std::complex<float>>& out
         // );
 
-        template <typename T>
-        std::vector<T> decimate(const T* data, size_t size, size_t d);
+        // template <typename T>
+        // std::vector<T> decimate(const T* data, size_t size, size_t d);
+
+        // template <typename T>
+        // void upsample(const T* data, size_t size, size_t d, std::vector<T>& out);
     }
 
     namespace Filters {

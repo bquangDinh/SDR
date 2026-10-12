@@ -74,6 +74,8 @@ Q_INVOKABLE void SdrBackend::setSampleRate(quint32 sampleRate) {
 
     if (_rtlAudioThread) _rtlAudioThread->setSampleRate(sampleRate);
 
+    if (_rtlReaderThread) _rtlReaderThread->setSampleRate(sampleRate);
+
     _device_settings.sampleRate = sampleRate;
 
     update_frequency_range();
@@ -96,13 +98,11 @@ Q_INVOKABLE void SdrBackend::setCorrectionPPM(int correctionPPM) {
 }
 
 Q_INVOKABLE void SdrBackend::setShiftAmount(qint32 shiftAmount) {
-    Q_ASSERT_X(shiftAmount >= 0, "SdrBackend::setShiftAmount", "Invalid shift amount!");
-
     if (_device_settings.shiftAmount == shiftAmount) return;
 
-    SdrDevice* currentDevice = SdrDeviceManager::instance().currentDevice();
+    // SdrDevice* currentDevice = SdrDeviceManager::instance().currentDevice();
 
-    if (currentDevice != nullptr && currentDevice->initialized()) currentDevice->sdr_set_shift_amount(shiftAmount);
+    // if (currentDevice != nullptr && currentDevice->initialized()) currentDevice->sdr_set_shift_amount(shiftAmount);
 
     _device_settings.shiftAmount = shiftAmount;
 
@@ -184,11 +184,11 @@ Q_INVOKABLE void SdrBackend::setBiasTee(bool biasTee) {
 Q_INVOKABLE void SdrBackend::setShift(bool shift) {
     if (_device_settings.shift == shift) return;
 
-    SdrDevice* currentDevice = SdrDeviceManager::instance().currentDevice();
+    // SdrDevice* currentDevice = SdrDeviceManager::instance().currentDevice();
 
-    if (currentDevice != nullptr && currentDevice->initialized()) {
-        currentDevice->sdr_set_shift(shift);
-    }
+    // if (currentDevice != nullptr && currentDevice->initialized()) {
+    //     currentDevice->sdr_set_shift(shift);
+    // }
 
     _device_settings.shift = shift;
 
@@ -198,13 +198,15 @@ Q_INVOKABLE void SdrBackend::setShift(bool shift) {
 Q_INVOKABLE void SdrBackend::setCorrectIQ(bool correctIQ) {
     if (_device_settings.correctIQ == correctIQ) return;
 
-    SdrDevice* currentDevice = SdrDeviceManager::instance().currentDevice();
+    // SdrDevice* currentDevice = SdrDeviceManager::instance().currentDevice();
 
-    if (currentDevice != nullptr && currentDevice->initialized()) {
-        currentDevice->sdr_set_correct_IQ(correctIQ);
-    }
+    // if (currentDevice != nullptr && currentDevice->initialized()) {
+    //     currentDevice->sdr_set_correct_IQ(correctIQ);
+    // }
 
     _device_settings.correctIQ = correctIQ;
+
+    if (_rtlReaderThread) _rtlReaderThread->setCorrectIQ(correctIQ);
 
     emit correctIQChanged();
 }
@@ -212,11 +214,13 @@ Q_INVOKABLE void SdrBackend::setCorrectIQ(bool correctIQ) {
 Q_INVOKABLE void SdrBackend::setInvertSpectrum(bool invertSpectrum) {
     if (_device_settings.invertSpectrum == invertSpectrum) return;
 
-    SdrDevice* currentDevice = SdrDeviceManager::instance().currentDevice();
+    // SdrDevice* currentDevice = SdrDeviceManager::instance().currentDevice();
 
-    if (currentDevice != nullptr && currentDevice->initialized()) {
-        currentDevice->sdr_set_invert_spectrum(invertSpectrum);
-    }
+    // if (currentDevice != nullptr && currentDevice->initialized()) {
+    //     currentDevice->sdr_set_invert_spectrum(invertSpectrum);
+    // }
+
+    if (_rtlReaderThread) _rtlReaderThread->setInvertSpectrum(invertSpectrum);
 
     _device_settings.invertSpectrum = invertSpectrum;
 
@@ -275,7 +279,7 @@ Q_INVOKABLE void SdrBackend::setCWShiftAmount(quint32 cwShiftAmount) {
 
     if (_radio_settings.cwShiftAmount == cwShiftAmount) return;
 
-    // _rtlAudioThread->setCWShiftAmount(cwShiftAmount);
+    _rtlAudioThread->setCWShiftAmount(cwShiftAmount);
 
     _radio_settings.cwShiftAmount = cwShiftAmount;
 
@@ -448,7 +452,11 @@ void SdrBackend::update_frequency_range() {
 
     _device_settings.freqScaleLabel = QString::fromUtf8(frequency_scale_units[scaleIndex].suffix.c_str());
 
+    _device_settings.freqScale = frequency_scale_units[scaleIndex].scale;
+
     emit frequencyRangeChanged();
+
+    emit freqScaleChanged();
 }
 
 int SdrBackend::pick_scale_index(uint32_t freq) {

@@ -20,6 +20,17 @@ public:
     void stop();
 
     void resume();
+
+    void setInvertSpectrum(bool invert) { this->_invertSpectrum = invert; }
+
+    void setCorrectIQ(bool correctIQ) { this->_correctIQ = correctIQ; }
+
+    void setSampleRate(uint32_t sampleRate) {
+        this->_sampleRate = sampleRate;
+
+        // Compute alpha, for correct IQ
+        _alpha = 2 * M_PI * _correctIQCutOff / sampleRate;
+    }
 protected:
     void run() override;
 private:
@@ -32,6 +43,15 @@ private:
     std::condition_variable _cv;
     bool _paused = false;
     bool _stop = false;
+
+    bool _invertSpectrum = false;
+    bool _correctIQ = false;
+
+    // Running sum averages of I, Q
+    // use for Correct IQ
+    double _alpha, _muI, _muQ;
+    uint32_t _sampleRate;
+    const double _correctIQCutOff = 5; // cutoff at 5 Hz
 
     void read();
 };
