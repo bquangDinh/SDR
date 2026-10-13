@@ -11,8 +11,8 @@ class RtlFFTThread : public QThread
 {
     Q_OBJECT
 public:
-    static constexpr uint32_t FFT_BINS = 8192;
-    static constexpr uint32_t NARROW_FFT_BINS = 2048;
+    static constexpr uint32_t FFT_BINS = 1024;
+    static constexpr uint32_t NARROW_FFT_BINS = 1024;
 
     RtlFFTThread(LatestChunk* c, ChunkQueue* decimatedQueue, QObject* parent) :
         QThread(parent),

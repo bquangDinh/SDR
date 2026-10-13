@@ -10,13 +10,8 @@
 class WfmDemod : public Demodulator
 {
 public:
-    // First low pass
-    static constexpr uint32_t PASSBAND_DEC1 = 90e3;
-    static constexpr uint32_t STOPBAND_DEC1 = 120e3;
-
     // Second low pass
-    static constexpr uint32_t PASSBAND_DEC2 = 15e3;
-    static constexpr uint32_t STOPBAND_DEC2 = 19e3;
+    static constexpr uint32_t PASSBAND = 15e3;
 
     static constexpr uint32_t MAX_DEVIATION = 75e3;
 

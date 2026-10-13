@@ -2,6 +2,7 @@
 
 #include "core/Signal.h"
 #include <QDebug>
+#include <chrono>
 
 void NfmDemod::process(const std::complex<float>* in, size_t n, std::vector<float>& out) {
     if (_dirty) {
@@ -13,20 +14,44 @@ void NfmDemod::process(const std::complex<float>* in, size_t n, std::vector<floa
         }
     }
 
-    _iq.clear();
+    _o1.clear();
 
-    _dec->process(in, n, _iq);
-    _fm->process(_iq.data(), _iq.size(), out);
+    auto t0 = std::chrono::steady_clock::now();
+
+    _dec1->process(in, n, _o1);
+
+    auto t1 = std::chrono::steady_clock::now();
+
+    qDebug() << "Demod: Decimation 1 took" << std::chrono::duration_cast<std::chrono::microseconds>(t1 - t0).count() << "us";
+
+    _o2.clear();
+
+    t0 = std::chrono::steady_clock::now();
+
+    _dec2->process(_o1.data(), _o1.size(), _o2);
+
+    t1 = std::chrono::steady_clock::now();
+
+    qDebug() << "Demod: Decimation 2 took" << std::chrono::duration_cast<std::chrono::microseconds>(t1 - t0).count() << "us";
+
+    t0 = std::chrono::steady_clock::now();
+
+    _fm->process(_o2.data(), _o2.size(), out);
+
+    t1 = std::chrono::steady_clock::now();
+
+    qDebug() << "Demod: FM demodulation took" << std::chrono::duration_cast<std::chrono::microseconds>(t1 - t0).count() << "us";
 
     // Callback decimated
-    if (_cb) _cb(_iq.data(), _iq.size());
+    if (_cb) _cb(_o2.data(), _o2.size());
 }
 
 void NfmDemod::reset() {
     // Force reset init
     _dirty = true;
 
-    if (_dec) _dec->reset();
+    if (_dec1) _dec1->reset();
+    if (_dec2) _dec2->reset();
     if (_fm) _fm->reset();
 }
 
@@ -49,11 +74,21 @@ bool NfmDemod::init() {
         return false;
     }
 
-    size_t decimatedStep = _inSampleRate / _outSampleRate;
+    uint32_t midrate = 240e3;
 
-    std::vector<float> taps = Signal::Utils::make_lowpass(_inSampleRate, PASSBAND, STOPBAND);
+    size_t d1 = _inSampleRate / midrate;
+    size_t d2 = midrate / _outSampleRate;
 
-    _dec = std::make_unique<FastDecimator>(taps, decimatedStep);
+    uint32_t passband = std::abs(_bandwidth) > 0 ? _bandwidth / 2 : PASSBAND;
+    uint32_t stopband = passband + passband * 0.2; // 20% more
+
+    std::vector<float> taps1 = Signal::Utils::make_lowpass(_inSampleRate, passband, midrate - stopband);
+    std::vector<float> taps2 = Signal::Utils::make_lowpass(_outSampleRate, passband, stopband);
+
+    qDebug() << "Demod NFM - Num taps is: " << taps1.size() << " | " << taps2.size();
+
+    _dec1 = std::make_unique<FastDecimator>(taps1, d1);
+    _dec2 = std::make_unique<FastDecimator>(taps2, d2);
     _fm = std::make_unique<FmDiscriminator>(_outSampleRate, MAX_DEVIATION);
 
     return true;

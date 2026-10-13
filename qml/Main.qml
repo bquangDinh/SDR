@@ -730,23 +730,38 @@ ApplicationWindow {
                                     Layout.fillWidth: true
                                     Layout.fillHeight: true
 
+                                    theme: GraphsTheme {
+                                        grid.mainColor: "#606060"
+                                        grid.subColor: "#303030"
+                                        grid.mainWidth: 1
+                                        grid.subWidth: 1
+                                    }
+
                                     axisX: ValueAxis {
                                         min: sdr.minFreqScaled + (sdr.shift ? (sdr.shiftAmount / sdr.freqScale) : 0)
                                         max: sdr.maxFreqScaled + (sdr.shift ? (sdr.shiftAmount / sdr.freqScale) : 0)
                                         titleText: "Frequency (%1)".arg(sdr.freqScaleLabel)
+                                        tickInterval: 0.1
+                                        subTickCount: 4
+                                        gridVisible: true
+                                        subGridVisible: true
                                     }
 
                                     axisY: ValueAxis {
                                         min: -150
                                         max: 0
                                         titleText: "dBFS"
+                                        tickInterval: 10
+                                        subTickCount: 1
+                                        subGridVisible: true
                                     }
 
                                     LineSeries {
                                         id: spectrumSeries
                                         name: "Spectrum"
-                                        color: "#89b4fa"
-                                        width: 1
+                                        color: "#4fc3f7"
+                                        width: 0.5
+                                        capStyle: Qt.RoundCap
                                     }
                                 }
 

@@ -57,8 +57,6 @@ void WfmDemod::reset() {
 }
 
 bool WfmDemod::init() {
-    const uint32_t midrate = 240e3;
-
     if (_inSampleRate == 0 || _outSampleRate == 0) {
         qDebug() << "Demod: You forgot to set input sample rate or output sample rate";
 
@@ -71,34 +69,27 @@ bool WfmDemod::init() {
         return false;
     }
 
-    if (_inSampleRate % midrate != 0) {
-        qDebug() << "Demod: Input sample rate must be divisible by 240 kHz for WFM";
+    uint32_t midrate = 240e3;
 
-        return false;
-    }
+    size_t d1 = _inSampleRate / midrate;
+    size_t d2 = midrate / _outSampleRate;
 
-    if (midrate % _outSampleRate != 0) {
-        qDebug() << "Demod: Output sample rate must be divisible by 240 kHz for WFM";
+    uint32_t passband = std::abs(_bandwidth) > 0 ? _bandwidth / 2 : PASSBAND;
+    uint32_t stopband = passband + passband * 0.2; // 20% more
 
-        return false;
-    }
+    std::vector<float> taps1 = Signal::Utils::make_lowpass(_inSampleRate, passband, midrate - stopband);
 
-    const int d1 = _inSampleRate / midrate;
-    const int d2 = midrate / _outSampleRate;
+    std::vector<float> taps2 = Signal::Utils::make_lowpass(midrate, passband, stopband);
 
-    std::vector<float> taps1 = Signal::Utils::make_lowpass(_inSampleRate, PASSBAND_DEC1, STOPBAND_DEC1);
+    // qDebug() << "Tap1 count " << taps1.size();
 
-    std::vector<float> taps2 = Signal::Utils::make_lowpass(midrate, PASSBAND_DEC2, STOPBAND_DEC2);
-
-    qDebug() << "Tap1 count " << taps1.size();
-
-    qDebug() << "Tap2 count " << taps2.size();
+    // qDebug() << "Tap2 count " << taps2.size();
 
     _dec1 = std::make_unique<FastDecimator>(taps1, d1);
 
     _dec2 = std::make_unique<FastDecimator>(taps2, d2);
 
-    _fm = std::make_unique<FmDiscriminator>(240e3, MAX_DEVIATION);
+    _fm = std::make_unique<FmDiscriminator>(midrate, MAX_DEVIATION);
 
     // Compute a low-pass single pole IIR filter for deemphasis step
     _x = std::exp(-1.0f / (75e-6f * _outSampleRate));

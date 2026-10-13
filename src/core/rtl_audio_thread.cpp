@@ -1,6 +1,7 @@
 #include "rtl_audio_thread.h"
 
 #include <QDebug>
+#include <chrono>
 
 #include "core/demodulators/amdemod.h"
 #include "core/demodulators/nfmdemod.h"
@@ -74,7 +75,7 @@ void RtlAudioThread::setSampleRate(uint32_t sampleRate) {
 }
 
 void RtlAudioThread::setBandwidth(uint32_t bw) {
-    //
+    if (_demod) _demod->set_bandwidth(bw);
 }
 
 void RtlAudioThread::setDemodMode(int mode) {

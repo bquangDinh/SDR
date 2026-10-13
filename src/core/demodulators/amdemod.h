@@ -27,14 +27,14 @@ protected:
     bool init() override;
 
 private:
-    std::unique_ptr<FastDecimator> _dec;
+    std::unique_ptr<FastDecimator> _dec1, _dec2;
     std::unique_ptr<AmDiscriminator> _am;
 
     float _carrier = 0;
     const float _fc = 30.0f;
     float b1, a0;
 
-    std::vector<std::complex<float>> _iq;
+    std::vector<std::complex<float>> _o1, _o2;
 };
 
 #endif // AMDEMOD_H

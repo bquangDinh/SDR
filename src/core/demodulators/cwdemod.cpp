@@ -52,24 +52,6 @@ void CwDemod::reset() {
 }
 
 bool CwDemod::init() {
-    if (_inSampleRate == 0 || _outSampleRate == 0) {
-        qDebug() << "Demod: You forgot to set input sample rate or output sample rate";
-
-        return false;
-    }
-
-    if (_inSampleRate < _outSampleRate) {
-        qDebug() << "Demod: Input sample rate cannot be lower than output sample rate";
-
-        return false;
-    }
-
-    if (_inSampleRate % _outSampleRate != 0) {
-        qDebug() << "Demod: Input sample rate must be divisible into output sample rate";
-
-        return false;
-    }
-
     const uint32_t midrate = 12e3;
     const int d = _inSampleRate / midrate;
     upsampleSteps = _outSampleRate / midrate;

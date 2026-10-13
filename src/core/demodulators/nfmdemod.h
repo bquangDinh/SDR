@@ -26,10 +26,10 @@ public:
 protected:
     bool init() override;
 private:
-    std::unique_ptr<FastDecimator> _dec;
+    std::unique_ptr<FastDecimator> _dec1, _dec2;
     std::unique_ptr<FmDiscriminator> _fm;
 
-    std::vector<std::complex<float>> _iq;
+    std::vector<std::complex<float>> _o1, _o2;
 };
 
 #endif // NFMDEMOD_H
