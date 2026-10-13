@@ -81,10 +81,6 @@ bool WfmDemod::init() {
 
     std::vector<float> taps2 = Signal::Utils::make_lowpass(midrate, passband, stopband);
 
-    // qDebug() << "Tap1 count " << taps1.size();
-
-    // qDebug() << "Tap2 count " << taps2.size();
-
     _dec1 = std::make_unique<FastDecimator>(taps1, d1);
 
     _dec2 = std::make_unique<FastDecimator>(taps2, d2);

@@ -87,6 +87,8 @@ void RtlFFTThread::run() {
 
         size_t pos = 0;
 
+        auto t0 = std::chrono::steady_clock::now();
+
         while (decChain.size() - pos >= N) {
             auto t0 = std::chrono::steady_clock::now();
 
@@ -106,6 +108,10 @@ void RtlFFTThread::run() {
         }
 
         decChain.erase(decChain.begin(), decChain.begin() + pos);   // keep the unused tail
+
+        auto t1 = std::chrono::steady_clock::now();
+
+        qDebug() << "Processing decimated chain took " << std::chrono::duration_cast<std::chrono::microseconds>(t1 - t0).count() << " us";
 
         next += std::chrono::milliseconds(33);
 

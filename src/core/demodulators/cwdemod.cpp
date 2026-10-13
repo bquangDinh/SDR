@@ -56,11 +56,14 @@ bool CwDemod::init() {
     const int d = _inSampleRate / midrate;
     upsampleSteps = _outSampleRate / midrate;
 
-    const uint32_t fMax = std::abs(this->_cwShift) + 250; // assume 250 is the bandwidth
+    const uint32_t passband = this->_bandwidth / 2;
+    const uint32_t stopband = passband + passband * 0.2;
 
-    std::vector<float> taps1 = Signal::Utils::make_lowpass(_inSampleRate, PASSBAND_DEC1, STOPBAND_DEC1);
+    const uint32_t fMax = std::abs(this->_cwShift) + passband; // assume 250 is the bandwidth
 
-    std::vector<float> taps2 = Signal::Utils::make_lowpass(midrate, PASSBAND_DEC2, STOPBAND_DEC2);
+    std::vector<float> taps1 = Signal::Utils::make_lowpass(_inSampleRate, passband, midrate - stopband);
+
+    std::vector<float> taps2 = Signal::Utils::make_lowpass(midrate, passband, stopband);
 
     std::vector<float> taps3 = Signal::Utils::make_lowpass(_outSampleRate, fMax, midrate - fMax);
 

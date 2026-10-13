@@ -2,7 +2,6 @@
 
 #include "core/Signal.h"
 #include <QDebug>
-#include <chrono>
 
 void NfmDemod::process(const std::complex<float>* in, size_t n, std::vector<float>& out) {
     if (_dirty) {
@@ -16,31 +15,13 @@ void NfmDemod::process(const std::complex<float>* in, size_t n, std::vector<floa
 
     _o1.clear();
 
-    auto t0 = std::chrono::steady_clock::now();
-
     _dec1->process(in, n, _o1);
-
-    auto t1 = std::chrono::steady_clock::now();
-
-    qDebug() << "Demod: Decimation 1 took" << std::chrono::duration_cast<std::chrono::microseconds>(t1 - t0).count() << "us";
 
     _o2.clear();
 
-    t0 = std::chrono::steady_clock::now();
-
     _dec2->process(_o1.data(), _o1.size(), _o2);
 
-    t1 = std::chrono::steady_clock::now();
-
-    qDebug() << "Demod: Decimation 2 took" << std::chrono::duration_cast<std::chrono::microseconds>(t1 - t0).count() << "us";
-
-    t0 = std::chrono::steady_clock::now();
-
     _fm->process(_o2.data(), _o2.size(), out);
-
-    t1 = std::chrono::steady_clock::now();
-
-    qDebug() << "Demod: FM demodulation took" << std::chrono::duration_cast<std::chrono::microseconds>(t1 - t0).count() << "us";
 
     // Callback decimated
     if (_cb) _cb(_o2.data(), _o2.size());
@@ -84,8 +65,6 @@ bool NfmDemod::init() {
 
     std::vector<float> taps1 = Signal::Utils::make_lowpass(_inSampleRate, passband, midrate - stopband);
     std::vector<float> taps2 = Signal::Utils::make_lowpass(_outSampleRate, passband, stopband);
-
-    qDebug() << "Demod NFM - Num taps is: " << taps1.size() << " | " << taps2.size();
 
     _dec1 = std::make_unique<FastDecimator>(taps1, d1);
     _dec2 = std::make_unique<FastDecimator>(taps2, d2);

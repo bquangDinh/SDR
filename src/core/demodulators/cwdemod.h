@@ -10,12 +10,6 @@
 class CwDemod : public Demodulator
 {
 public:
-    static constexpr uint32_t PASSBAND_DEC1 = 250;
-    static constexpr uint32_t STOPBAND_DEC1 = 11750;
-
-    static constexpr uint32_t PASSBAND_DEC2 = 250;
-    static constexpr uint32_t STOPBAND_DEC2 = 350;
-
     CwDemod() {}
 
     void process(const std::complex<float>* in, size_t n, std::vector<float>& out) override;

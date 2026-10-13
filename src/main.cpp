@@ -1,6 +1,5 @@
 #include <QGuiApplication>
 #include <QQmlApplicationEngine>
-
 // #include <thread>
 
 // #include "fftw3.h"

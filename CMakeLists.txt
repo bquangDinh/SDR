@@ -85,6 +85,7 @@ qt_add_qml_module(appsdr_qt
         SOURCES src/core/demodulators/lsbdemod.h src/core/demodulators/lsbdemod.cpp
         SOURCES src/core/demodulators/dsbdemod.h src/core/demodulators/dsbdemod.cpp
         SOURCES src/core/demodulators/rawdemod.h src/core/demodulators/rawdemod.cpp
+        SOURCES src/core/fps_counter.h
 )
 
 # Qt for iOS sets MACOSX_BUNDLE_GUI_IDENTIFIER automatically since Qt 6.1.

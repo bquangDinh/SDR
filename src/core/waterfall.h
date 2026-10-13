@@ -8,6 +8,7 @@
 #include <QPointer>
 
 #include "core/sdr_backend.h"
+#include "core/fps_counter.h"
 
 struct Stop { float r, g, b; };
 
@@ -79,6 +80,7 @@ private:
 
     void resetImage(int bins, int rows);
 
+    FpsCounter* fpsCounter = nullptr;
     QPointer<SdrBackend> m_source;
     QImage m_img;
     QRgb m_lut[256];
