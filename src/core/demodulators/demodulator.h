@@ -3,6 +3,7 @@
 
 #include <complex>
 #include <functional>
+#include "core/squelcher.h"
 
 class Demodulator
 {
@@ -25,18 +26,30 @@ public:
 
     void set_bandwidth(int bandwidth) { this->_bandwidth = bandwidth; _dirty = true; }
 
+    void set_squelch(bool squech) { this->_squelch = squech; }
+
+    void set_squelch_amount(uint32_t squelchAmount) { this->_squelcher.setSquelch(squelchAmount); }
+
     void connect_decimated_callback(DecimatedCallback cb) { this->_cb = std::move(cb); }
 protected:
     virtual bool init() = 0;
 
-    uint32_t _inSampleRate = 0, _outSampleRate = 0;
+    uint32_t _inSampleRate = 0, _outSampleRate = 0, _squelchAmount;
+
+    bool _squelch;
 
     // Only use for CW demod
     int _cwShift = 0, _bandwidth = 0;
 
     bool _dirty = true;
 
+    Squelcher _squelcher;
+
     DecimatedCallback _cb;
+
+    std::vector<std::complex<float>> narrowFFTOut;
+
+    void process_narrow_fft(const std::complex<float>* data, size_t n, uint32_t defaultBandwidth);
 };
 
 #endif // DEMODULATOR_H

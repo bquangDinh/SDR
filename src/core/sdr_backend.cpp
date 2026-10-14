@@ -243,9 +243,13 @@ Q_INVOKABLE void SdrBackend::setDemodMode(int mode) {
 Q_INVOKABLE void SdrBackend::setBandwidth(quint32 bandwidth) {    
     Q_ASSERT_X(_rtlAudioThread != nullptr, "sdr_backend::setBandwidth", "RTL Audio Thread is not defined!");
 
+    Q_ASSERT_X(bandwidth > 0, "sdr_backend::setBandwidth", "bandwidth must be greater than 0");
+
     if (_radio_settings.bandwidth == bandwidth) return;
 
-    _rtlAudioThread->setBandwidth(bandwidth);
+    if (_rtlAudioThread) _rtlAudioThread->setBandwidth(bandwidth);
+
+    if (_rtlFFTThread) _rtlFFTThread->set_narrow_display_rate(bandwidth <= 48e3 ? bandwidth : 48e3);
 
     _radio_settings.bandwidth = bandwidth;
 
@@ -259,6 +263,8 @@ Q_INVOKABLE void SdrBackend::setSquelch(bool squelch) {
 
     _radio_settings.squelch = squelch;
 
+    if (_rtlAudioThread) _rtlAudioThread->setSquelch(squelch);
+
     emit squelchChanged();
 }
 
@@ -267,9 +273,9 @@ Q_INVOKABLE void SdrBackend::setSquelchAmount(quint32 squelchAmount) {
 
     if (_radio_settings.squelchAmount == squelchAmount) return;
 
-    // _rtlAudioThread->setSquelchAmount(squelchAmount);
-
     _radio_settings.squelchAmount = squelchAmount;
+
+    if (_rtlAudioThread) _rtlAudioThread->setSquelchAmount(squelchAmount);
 
     emit squelchAmountChanged();
 }
@@ -512,6 +518,8 @@ void SdrBackend::set_defaults() {
     _radio_settings.antiFading = false;
     _radio_settings.lockCarrier = false;
     _radio_settings.stickyLock = false;
+
+    if (_rtlFFTThread) _rtlFFTThread->set_narrow_display_rate(_radio_settings.bandwidth);
 }
 
 sdr_config_t SdrBackend::create_sdr_config() {

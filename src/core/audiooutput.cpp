@@ -66,6 +66,8 @@ void AudioOutput::write(const std::vector<float>& audio) {
         return;
     }
 
+    if (audio.size() == 0) return;
+
     pcm.resize(audio.size());
 
     for (size_t i = 0; i < audio.size(); ++i) {

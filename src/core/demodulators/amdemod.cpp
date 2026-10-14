@@ -20,18 +20,20 @@ void AmDemod::process(const std::complex<float>* in, size_t n, std::vector<float
 
     _dec2->process(_o1.data(), _o1.size(), _o2);
 
-    _am->process(_o2.data(), _o2.size(), out);
+    if (!_squelch || (_squelch && !_squelcher.shouldSquelch(_o2.data(), _o2.size()))) {
+        _am->process(_o2.data(), _o2.size(), out);
 
-    // Perform a IIR single pole lowpass to remove carrier
-    for (auto& sample : out) {
-        _carrier = a0 * sample + b1 * _carrier;
-        sample -= _carrier;
-        sample /= (_carrier + 1e-9f);
-
+        // Perform a IIR single pole lowpass to remove carrier
+        for (auto& sample : out) {
+            _carrier = a0 * sample + b1 * _carrier;
+            sample -= _carrier;
+            sample /= (_carrier + 1e-9f);
+        }
+    } else {
+        out.clear();
     }
 
-    // Callback decimated
-    if (_cb) _cb(_o2.data(), _o2.size());
+    process_narrow_fft(_o2.data(), _o2.size(), PASSBAND);
 }
 
 void AmDemod::reset() {

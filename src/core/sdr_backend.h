@@ -152,6 +152,7 @@ public:
 
         connect(_rtlFFTThread, &RtlFFTThread::spectrumReady, this, &SdrBackend::spectrum);
         connect(_rtlFFTThread, &RtlFFTThread::narrowSpectrumReady, this, &SdrBackend::narrowSpectrum);
+        connect(_rtlFFTThread, &RtlFFTThread::power, this, &SdrBackend::power);
 
         set_defaults();
     }
@@ -312,6 +313,7 @@ signals:
     void errorOccurred(QString message);
     void spectrum(QList<double> bins);
     void narrowSpectrum(QList<double> bins);
+    void power(double power);
     void demodModeChanged();
     void bandwidthChanged();
     void sampleRateChanged();

@@ -21,10 +21,13 @@ void NfmDemod::process(const std::complex<float>* in, size_t n, std::vector<floa
 
     _dec2->process(_o1.data(), _o1.size(), _o2);
 
-    _fm->process(_o2.data(), _o2.size(), out);
+    if (!_squelch || (_squelch && !_squelcher.shouldSquelch(_o2.data(), _o2.size()))) {
+        _fm->process(_o2.data(), _o2.size(), out);
+    } else {
+        out.clear();
+    }
 
-    // Callback decimated
-    if (_cb) _cb(_o2.data(), _o2.size());
+    process_narrow_fft(_o2.data(), _o2.size(), PASSBAND);
 }
 
 void NfmDemod::reset() {
@@ -64,7 +67,7 @@ bool NfmDemod::init() {
     uint32_t stopband = passband + passband * 0.2; // 20% more
 
     std::vector<float> taps1 = Signal::Utils::make_lowpass(_inSampleRate, passband, midrate - stopband);
-    std::vector<float> taps2 = Signal::Utils::make_lowpass(_outSampleRate, passband, stopband);
+    std::vector<float> taps2 = Signal::Utils::make_lowpass(midrate, passband, stopband);
 
     _dec1 = std::make_unique<FastDecimator>(taps1, d1);
     _dec2 = std::make_unique<FastDecimator>(taps2, d2);

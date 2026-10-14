@@ -22,8 +22,6 @@ Waterfall::Waterfall(QQuickItem* parent) : QQuickPaintedItem(parent) {
     resetImage(2048, m_history);
 
     setOpaquePainting(true);
-
-    fpsCounter = new FpsCounter(this);
 }
 
 void Waterfall::setSource(SdrBackend* s) {
@@ -171,15 +169,11 @@ void Waterfall::addLine(const QList<double>& dB)
         }
     }
 
-    if (fpsCounter) qDebug() << "Last FPS is: " << fpsCounter->fps();
-
     update();   // schedules paint() on the next frame
 }
 
 void Waterfall::paint(QPainter* painter)
 {
-    if (fpsCounter) fpsCounter->tick();
-
     painter->setRenderHint(QPainter::SmoothPixmapTransform, true);
 
     // Called on the render thread while the GUI thread is blocked,

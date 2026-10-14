@@ -62,6 +62,18 @@ void RtlAudioThread::setCWShiftAmount(int cwShiftAmount) {
     }
 }
 
+void RtlAudioThread::setSquelchAmount(uint32_t squelch) {
+    if (_demod) {
+        _demod->set_squelch_amount(squelch);
+    }
+}
+
+void RtlAudioThread::setSquelch(bool squelch) {
+    if (_demod) {
+        _demod->set_squelch(squelch);
+    }
+}
+
 void RtlAudioThread::setSampleRate(uint32_t sampleRate) {
     if (_sampleRate == sampleRate) return;
 
@@ -131,7 +143,7 @@ void RtlAudioThread::read() {
 
             _demod->set_input_sample_rate(_sampleRate);
 
-            _demod->set_output_sample_rate(48e3);
+            _demod->set_output_sample_rate(AUDIO_SAMPLE_RATE);
 
             _demod->connect_decimated_callback([this](const std::complex<float>* data, size_t n) {
                 if (_decimatedQueue) _decimatedQueue->push(std::make_shared<const std::vector<std::complex<float>>>(data, data + n));

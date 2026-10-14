@@ -32,6 +32,10 @@ void RtlFFTThread::resume() {
     _cv.notify_all();
 }
 
+void RtlFFTThread::set_narrow_display_rate(uint32_t rate) {
+    _narrowSampleRate = rate;
+}
+
 void RtlFFTThread::run() {
     // Setup
     auto next = std::chrono::steady_clock::now();
@@ -78,16 +82,22 @@ void RtlFFTThread::run() {
             emit spectrumReady(QList<double>(fullSpectrumOutput.begin(), fullSpectrumOutput.end()));
         }
 
+        if (Chunk c= _decimatedQueue->tryPop()) {
+            decChain.insert(decChain.end(), c->begin(), c->end());
+
+            double avgPower = compute_spectrum_power(c->data(), c->size());
+
+            emit power(avgPower);
+        }
+
         while (Chunk c = _decimatedQueue->tryPop()) {
             decChain.insert(decChain.end(), c->begin(), c->end());
         }
 
         const size_t N   = NARROW_FFT_BINS;
-        const size_t HOP = N / 4;
+        const size_t HOP = std::clamp<size_t>(_narrowSampleRate / 30, size_t(1), N);
 
         size_t pos = 0;
-
-        auto t0 = std::chrono::steady_clock::now();
 
         while (decChain.size() - pos >= N) {
             auto t0 = std::chrono::steady_clock::now();
@@ -109,10 +119,6 @@ void RtlFFTThread::run() {
 
         decChain.erase(decChain.begin(), decChain.begin() + pos);   // keep the unused tail
 
-        auto t1 = std::chrono::steady_clock::now();
-
-        qDebug() << "Processing decimated chain took " << std::chrono::duration_cast<std::chrono::microseconds>(t1 - t0).count() << " us";
-
         next += std::chrono::milliseconds(33);
 
         std::this_thread::sleep_until(next);
@@ -125,4 +131,14 @@ void RtlFFTThread::run() {
 
     qDebug() << "Computing full spectrum of " << fullSpectrumDataAvg << " elements took " << fullSpectrumAvg << " us on average";
     qDebug() << "Computing narrow spectrum of " << narrowSpectrumDataAvg << " elements took " << narrowSpectrumAvg << " us on average";
+}
+
+double RtlFFTThread::compute_spectrum_power(const std::complex<float>* data, size_t n) {
+    double avg = 0;
+
+    for (size_t i = 0; i < n; ++i) avg += std::norm(data[i]) / n;
+
+    avg = 10.0 * std::log10(avg + 1e-17);
+
+    return avg;
 }

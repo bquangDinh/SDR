@@ -27,23 +27,37 @@ ApplicationWindow {
         // onSpectrum: (bins) => console.log("QML got spectrum, bins:", bins.length)
     }
 
-    // Row {
-    //     spacing: 8
+    Connections {
+        target: sdr
+        function onSpectrum(bins) {
+            spectrumSeries.clear()
 
-    //     Button {
-    //         text: sdr.running ? "Stop" : "Start"
-    //         onClicked: sdr.running ? sdr.stop() : sdr.start()
-    //     }
+            const n = bins.length
+            const fMin = graph.axisX.min
+            const fMax = graph.axisX.max
 
-    //     Text {
-    //         text: "chunks: " + sdr.chunkCount
-    //     }
+            for (let i = 0; i < n; ++i) {
+                const freq = fMin + (fMax - fMin) * i / (n - 1)
+                spectrumSeries.append(freq, bins[i])
+            }
+        }
 
-    //     Text {
-    //         id: statusText;
-    //         color: "white"
-    //     }
-    // }
+        function onPower(power) {
+            power_meter.value = power
+        }
+    }
+
+    FrameAnimation {
+        id: fps
+        running: true
+    }
+
+    Timer {
+        interval: 500          // refresh the label twice a second
+        repeat: true
+        running: true
+        onTriggered: fps_label.text = Math.round(1 / fps.smoothFrameTime) + " FPS"
+    }
 
     ColumnLayout {
         anchors.fill: parent
@@ -153,6 +167,11 @@ ApplicationWindow {
                     Button {
                         text: "Down"
                         onClicked: sdr.setCenterFreq(sdr.centerFreq - 1000000)
+                    }
+
+                    Label {
+                        id: fps_label
+                        text: "-- FPS"
                     }
 
                     Item {
@@ -714,6 +733,7 @@ ApplicationWindow {
                         anchors.fill: parent
                         spacing: 8
 
+                        // FFT Spectrum
                         Rectangle {
                             Layout.fillWidth: true
                             Layout.preferredHeight: 300
@@ -738,6 +758,7 @@ ApplicationWindow {
                                     }
 
                                     axisX: ValueAxis {
+                                        id: xAxis
                                         min: sdr.minFreqScaled + (sdr.shift ? (sdr.shiftAmount / sdr.freqScale) : 0)
                                         max: sdr.maxFreqScaled + (sdr.shift ? (sdr.shiftAmount / sdr.freqScale) : 0)
                                         titleText: "Frequency (%1)".arg(sdr.freqScaleLabel)
@@ -748,6 +769,7 @@ ApplicationWindow {
                                     }
 
                                     axisY: ValueAxis {
+                                        id: yAxis
                                         min: -150
                                         max: 0
                                         titleText: "dBFS"
@@ -764,101 +786,101 @@ ApplicationWindow {
                                         capStyle: Qt.RoundCap
                                     }
                                 }
+                            }
+                        }
 
-                                Connections {
-                                    target: sdr
-                                    function onSpectrum(bins) {
-                                        spectrumSeries.clear()
+                        // FFT Wide Waterfall
+                        RowLayout {
+                            Layout.fillWidth: true
+                            Layout.fillHeight: true
 
-                                        const n = bins.length
-                                        const fMin = graph.axisX.min
-                                        const fMax = graph.axisX.max
+                            SdrPowerMeter {
+                                id: power_meter
+                                Layout.fillHeight: true
+                                Layout.preferredWidth: implicitWidth
+                                from: -150
+                                to: 0
+                                font.family: figtreeFont.name
+                            }
 
-                                        for (let i = 0; i < n; ++i) {
-                                            const freq = fMin + (fMax - fMin) * i / (n - 1)
-                                            spectrumSeries.append(freq, bins[i])
-                                        }
-                                    }
+                            Rectangle {
+                                id: waterfall_panel
+                                color: "#CCD0D4"
+                                radius: 8
+                                clip: true
+                                Layout.fillWidth: true
+                                Layout.fillHeight: true
+
+                                property real sampleRate: sdr.sampleRate            // must match the SDR
+                                property real centerHz: sdr.centerFreq            // hardware center frequency
+                                property real channelWidthHz: sdr.bandwidth          // your ±8 kHz channel filter
+                                property real offsetHz: 0                    // selected channel, relative to center
+                                readonly property real hzPerPixel: sampleRate / width
+
+                                // pixel x → offset in Hz. Left edge = −fs/2, right edge = +fs/2 (matches your fftshift)
+                                function setFromX(px) {
+                                    const limit = sampleRate / 2 - channelWidthHz;          // keep the channel inside the band
+                                    let hz = (px / width - 0.5) * sampleRate;
+                                    hz = Math.round(hz / 500) * 500;                        // snap to 500 Hz steps
+                                    offsetHz = Math.max(-limit, Math.min(limit, hz));
+                                }
+
+                                onOffsetHzChanged: sdr.setOffsetFreq(offsetHz)
+
+                                Waterfall {
+                                    id: waterfall
+                                    anchors.fill: parent
+                                    source: sdr
+                                    history: 300
+                                    minDb: -150
+                                    maxDb: 0
+                                    direction: "vertical"
+                                }
+
+                                // channel passband: translucent band as wide as the filter
+                                Rectangle {
+                                    id: band
+                                    anchors.top: parent.top
+                                    anchors.bottom: parent.bottom
+                                    width: Math.max(3, waterfall_panel.channelWidthHz / waterfall_panel.hzPerPixel)
+                                    x: (waterfall_panel.offsetHz / waterfall_panel.sampleRate + 0.5) * waterfall_panel.width - width / 2
+                                    color: "#4000ff00"                        // ARGB: about 25% opaque green
+                                }
+
+                                // center line of the selected channel
+                                Rectangle {
+                                    anchors.top: parent.top
+                                    anchors.bottom: parent.bottom
+                                    width: 2
+                                    x: band.x + band.width / 2 - 1
+                                    color: "#00ff00"
+                                }
+
+                                // frequency label next to the line
+                                Text {
+                                    x: Math.min(band.x + band.width + 4, waterfall_panel.width - width - 4)
+                                    y: 6
+                                    color: "white"
+                                    style: Text.Outline
+                                    styleColor: "black"
+                                    text: ((waterfall_panel.centerHz + waterfall_panel.offsetHz) / 1e6).toFixed(4) + " MHz"
+                                }
+
+                                // click to jump, drag to slide
+                                TapHandler {
+                                    onTapped: (eventPoint, button) => waterfall_panel.setFromX(eventPoint.position.x)
+                                }
+
+                                DragHandler {
+                                    target: null                              // don't move any item; just read the position
+                                    xAxis.enabled: true
+                                    yAxis.enabled: false
+                                    onCentroidChanged: if (active) waterfall_panel.setFromX(centroid.position.x)
                                 }
                             }
                         }
 
-                        Rectangle {
-                            id: waterfall_panel
-                            Layout.fillWidth: true
-                            Layout.fillHeight: true
-                            color: "#CCD0D4"
-                            radius: 8
-                            clip: true
-
-                            property real sampleRate: sdr.sampleRate            // must match the SDR
-                            property real centerHz: sdr.centerFreq            // hardware center frequency
-                            property real channelWidthHz: sdr.bandwidth          // your ±8 kHz channel filter
-                            property real offsetHz: 0                    // selected channel, relative to center
-                            readonly property real hzPerPixel: sampleRate / width
-
-                            // pixel x → offset in Hz. Left edge = −fs/2, right edge = +fs/2 (matches your fftshift)
-                            function setFromX(px) {
-                                const limit = sampleRate / 2 - channelWidthHz;          // keep the channel inside the band
-                                let hz = (px / width - 0.5) * sampleRate;
-                                hz = Math.round(hz / 500) * 500;                        // snap to 500 Hz steps
-                                offsetHz = Math.max(-limit, Math.min(limit, hz));
-                            }
-
-                            onOffsetHzChanged: sdr.setOffsetFreq(offsetHz)
-
-                            Waterfall {
-                                id: waterfall
-                                anchors.fill: parent
-                                source: sdr
-                                history: 300
-                                minDb: -150
-                                maxDb: 0
-                                direction: "vertical"
-                            }
-
-                            // channel passband: translucent band as wide as the filter
-                            Rectangle {
-                                id: band
-                                anchors.top: parent.top
-                                anchors.bottom: parent.bottom
-                                width: Math.max(3, waterfall_panel.channelWidthHz / waterfall_panel.hzPerPixel)
-                                x: (waterfall_panel.offsetHz / waterfall_panel.sampleRate + 0.5) * waterfall_panel.width - width / 2
-                                color: "#4000ff00"                        // ARGB: about 25% opaque green
-                            }
-
-                            // center line of the selected channel
-                            Rectangle {
-                                anchors.top: parent.top
-                                anchors.bottom: parent.bottom
-                                width: 2
-                                x: band.x + band.width / 2 - 1
-                                color: "#00ff00"
-                            }
-
-                            // frequency label next to the line
-                            Text {
-                                x: Math.min(band.x + band.width + 4, waterfall_panel.width - width - 4)
-                                y: 6
-                                color: "white"
-                                style: Text.Outline
-                                styleColor: "black"
-                                text: ((waterfall_panel.centerHz + waterfall_panel.offsetHz) / 1e6).toFixed(4) + " MHz"
-                            }
-
-                            // click to jump, drag to slide
-                            TapHandler {
-                                onTapped: (eventPoint, button) => waterfall_panel.setFromX(eventPoint.position.x)
-                            }
-
-                            DragHandler {
-                                target: null                              // don't move any item; just read the position
-                                xAxis.enabled: true
-                                yAxis.enabled: false
-                                onCentroidChanged: if (active) waterfall_panel.setFromX(centroid.position.x)
-                            }
-                        }
-
+                        // FFT Narrow Waterfall
                         Rectangle {
                             id: narrow_panel
                             Layout.fillWidth: true

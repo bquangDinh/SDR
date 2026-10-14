@@ -24,11 +24,13 @@ public:
 
     void stop();
 
-    void resume();    
+    void resume();
+
+    void set_narrow_display_rate(uint32_t rate);
 signals:
     void spectrumReady(QList<double> data);
     void narrowSpectrumReady(QList<double> data);
-
+    void power(double power);
 protected:
     void run() override;
 
@@ -43,11 +45,12 @@ private:
 
     std::vector<float> fullSpectrumOutput;
     std::vector<float> narrowSpectrumOutput;
-    fftwf_complex* in;
-    fftwf_complex* out;
-    float _norm = 0;
+
+    uint32_t _narrowSampleRate = 0;
 
     void make_blackman_window();
+
+    double compute_spectrum_power(const std::complex<float>* data, size_t n);
 };
 
 #endif // RTL_FFT_THREAD_H

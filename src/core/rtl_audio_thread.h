@@ -19,6 +19,8 @@ enum class DemodMode {
 class RtlAudioThread : public QThread
 {
 public:
+    static constexpr uint32_t AUDIO_SAMPLE_RATE = 48e3;
+
     RtlAudioThread(ChunkQueue* q, ChunkQueue* decimatedQueue, QObject* parent) :
         QThread(parent),
         _q(q),
@@ -44,6 +46,10 @@ public:
     void setOffsetFreq(double offset);
 
     void setCWShiftAmount(int cwShiftAmount);
+
+    void setSquelchAmount(uint32_t squelch);
+
+    void setSquelch(bool squelch);
 protected:
     void run() override;
 
@@ -68,7 +74,6 @@ private:
     std::vector<float> _audio;
 
     uint32_t _sampleRate = Constants::SampleRate::RATE_2_4_MSPS;
-    uint32_t _bandwidth = 8000;
 
     std::unique_ptr<Demodulator> make_demodulator(DemodMode m);
 

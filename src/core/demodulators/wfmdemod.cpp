@@ -20,6 +20,14 @@ void WfmDemod::process(const std::complex<float>* in, size_t n, std::vector<floa
     // Low-pass + Decimate at d steps
     _dec1->process(in, n, _iq);
 
+    if (!_squelch || (_squelch && !_squelcher.shouldSquelch(_o2.data(), _o2.size()))) {
+        _fm->process(_iq.data(), _iq.size(), _o1);
+    } else {
+        out.clear();
+
+        return;
+    }
+
     // FM
     _fm->process(_iq.data(), _iq.size(), _o1);
 
@@ -39,8 +47,7 @@ void WfmDemod::process(const std::complex<float>* in, size_t n, std::vector<floa
         sample = _demmph;
     }
 
-    // Callback decimated
-    if (_cb) _cb(_o3.data(), _o3.size());
+    process_narrow_fft(_o3.data(), _o3.size(), PASSBAND);
 }
 
 void WfmDemod::reset() {

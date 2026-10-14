@@ -13,6 +13,7 @@ void CwDemod::process(const std::complex<float>* in, size_t n, std::vector<float
         }
     }
 
+    // TODO: fix this shit
     _o1.clear();
 
     _dec1->process(in, n, _o1);
@@ -36,9 +37,13 @@ void CwDemod::process(const std::complex<float>* in, size_t n, std::vector<float
 
     _dec3->process(_o2.data(), _o2.size(), _o1);
 
-    out.resize(_o1.size());
+    if (!_squelch || (_squelch && !_squelcher.shouldSquelch(_o2.data(), _o2.size()))) {
+        out.resize(_o1.size());
 
-    for (size_t i = 0; i < _o1.size(); ++i) out[i] = std::real(_o1[i]);
+        for (size_t i = 0; i < _o1.size(); ++i) out[i] = std::real(_o1[i]);
+    } else {
+        out.clear();
+    }
 }
 
 void CwDemod::reset() {
