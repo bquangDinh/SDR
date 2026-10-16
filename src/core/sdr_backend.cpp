@@ -1,6 +1,7 @@
 #include "core/sdr_backend.h"
 
 #include <QtAssert>
+#include "core/telemetry.h"
 
 Q_INVOKABLE void SdrBackend::set_source(int source) {
     Q_ASSERT_X(source >= 0, "SdrBackend::setSource", "Invalid source index!");
@@ -407,6 +408,9 @@ Q_INVOKABLE void SdrBackend::stop() {
     // SdrDeviceManager::instance().destroy_current_device();
 
     _running = false;
+
+    // Print telemetry report
+    Telemetry::instance().print_report();
 
     // UI Change
     emit runningChanged();

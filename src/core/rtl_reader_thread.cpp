@@ -4,6 +4,7 @@
 #include "core/sdr_device_manager.h"
 #include <QDebug>
 #include <thread>
+#include "core/telemetry.h"
 
 RtlReaderThread::RtlReaderThread(ChunkQueue* q, LatestChunk* c, QObject* parent) : QThread(parent), _queue(q), _latestChunk(c) {
     _sampleRateSubId = SdrSettingsManager::instance().on_sample_rate_changed().subscribe([this](const uint32_t& v) { this->on_sample_rate_changed(v); });
@@ -68,6 +69,8 @@ void RtlReaderThread::read() {
         return;
     }
 
+    Telemetry::instance().start_recording_readerThreadProcessingTime();
+
     ssize_t read = currentDevice->sdr_read_data_sync((void*)buf, BUFFER_SIZE);
 
     if (read < 0) {
@@ -110,6 +113,8 @@ void RtlReaderThread::read() {
     _queue->push(c);
 
     _latestChunk->put(c);
+
+    Telemetry::instance().stop_recording_readerThreadProcessingTime();
 }
 
 void RtlReaderThread::on_sample_rate_changed(const uint32_t& v) {

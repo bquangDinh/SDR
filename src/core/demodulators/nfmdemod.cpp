@@ -1,6 +1,8 @@
 #include "nfmdemod.h"
 
 #include "core/Signal.h"
+#include "core/telemetry.h"
+
 #include <QDebug>
 
 void NfmDemod::process(const std::complex<float>* in, size_t n, std::vector<float>& out) {
@@ -12,6 +14,8 @@ void NfmDemod::process(const std::complex<float>* in, size_t n, std::vector<floa
             return;
         }
     }
+
+    Telemetry::instance().start_recording_NFMdemodProcessingTime();
 
     _o1.clear();
 
@@ -28,6 +32,8 @@ void NfmDemod::process(const std::complex<float>* in, size_t n, std::vector<floa
     }
 
     process_narrow_fft(_o2.data(), _o2.size(), PASSBAND);
+    
+    Telemetry::instance().stop_recording_NFMdemodProcessingTime();
 }
 
 void NfmDemod::reset() {

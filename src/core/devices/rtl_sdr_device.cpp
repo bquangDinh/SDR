@@ -3,11 +3,14 @@
 #include <cassert>
 
 #include "core/Constants.h"
+#include "core/telemetry.h"
 
 int RtlSdrDevice::sdr_init(uint32_t device_index, sdr_config init_config) {
     if (initialized()) return 0;
 
     _config = init_config;
+
+    Telemetry::instance().start_recording_deviceInitTime();
 
     // Open the device
     if (rtlsdr_open(&handler, device_index) < 0) {
@@ -57,6 +60,8 @@ int RtlSdrDevice::sdr_init(uint32_t device_index, sdr_config init_config) {
 
     _destroyed = false;
 
+    Telemetry::instance().stop_recording_deviceInitTime();
+
     return 0;
 }
 
@@ -73,9 +78,13 @@ ssize_t RtlSdrDevice::sdr_read_data_sync(void* buf, size_t len) {
 
     int n_read = 0;
 
+    Telemetry::instance().start_recording_deviceReadTime();
+
     int rc = rtlsdr_read_sync(handler, buf, len, &n_read);
 
     if (rc < 0) return -1;
+
+    Telemetry::instance().stop_recording_deviceReadTime();
 
     return n_read;
 }
@@ -87,9 +96,13 @@ ssize_t RtlSdrDevice::sdr_read_data_sync(std::vector<std::byte> &v) {
 
     int n_read = 0;
 
+    Telemetry::instance().start_recording_deviceReadTime();
+
     int rc = rtlsdr_read_sync(handler, v.data(), v.size(), &n_read);
 
     if (rc < 0) return -1;
+
+    Telemetry::instance().stop_recording_deviceReadTime();
 
     return n_read;
 }
@@ -160,7 +173,7 @@ int RtlSdrDevice::sdr_set_rf_gain(int gain) {
 
     _config.gain = gain;
     _config.actualGain = best;
-    
+
     return 0;
 }
 
@@ -289,6 +302,8 @@ int RtlSdrDevice::sdr_destroy() {
 
     assert(handler != nullptr && "handler is NULL! You may forgot to call sdr_init()");
 
+    Telemetry::instance().start_recording_deviceDestroyTime();
+
     int rc = rtlsdr_close(handler);
 
     handler = nullptr;
@@ -296,6 +311,8 @@ int RtlSdrDevice::sdr_destroy() {
     _destroyed = true;
 
     _initialized = false;
+
+    Telemetry::instance().stop_recording_deviceDestroyTime();
 
     return rc;
 }

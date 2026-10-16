@@ -1,4 +1,5 @@
 #include "chunkqueue.h"
+#include "core/telemetry.h"
 
 void ChunkQueue::push(Chunk c) {
     {
@@ -20,6 +21,8 @@ void ChunkQueue::push(Chunk c) {
 
 // Try to pop right away
 Chunk ChunkQueue::try_pop() {
+    Telemetry::instance().start_recording_chunkQueuePopImmediateTime();
+
     std::lock_guard<std::mutex> lk(_m);
 
     if (_q.empty()) return nullptr;
@@ -28,10 +31,14 @@ Chunk ChunkQueue::try_pop() {
 
     _q.pop_front();
 
+    Telemetry::instance().stop_recording_chunkQueuePopImmediateTime();
+
     return c;
 }
 
 Chunk ChunkQueue::pop(std::chrono::milliseconds timeout) {
+    Telemetry::instance().start_recording_chunkQueuePopTime(); 
+    
     std::unique_lock<std::mutex> lk(_m);
 
     // Wait if the queue is currently empty or the queue is closed (goes timeout)
@@ -46,6 +53,8 @@ Chunk ChunkQueue::pop(std::chrono::milliseconds timeout) {
     Chunk c = std::move(_q.front());
 
     _q.pop_front();
+
+    Telemetry::instance().stop_recording_chunkQueuePopTime();
 
     return c;
 }

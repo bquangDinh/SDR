@@ -11,7 +11,7 @@
 class RtlReaderThread : public QThread
 {
 public:
-    static constexpr uint32_t BUFFER_SIZE = 65536;
+    static constexpr uint32_t BUFFER_SIZE = 8192;
 
     RtlReaderThread(ChunkQueue* q, LatestChunk* c, QObject* parent);
 
@@ -22,17 +22,6 @@ public:
     void stop();
 
     void resume();
-
-    // void setInvertSpectrum(bool invert) { this->_invertSpectrum = invert; }
-
-    // void setCorrectIQ(bool correctIQ) { this->_correctIQ = correctIQ; }
-
-    // void setSampleRate(uint32_t sampleRate) {
-    //     this->_sampleRate = sampleRate;
-
-    //     // Compute alpha, for correct IQ
-    //     _alpha = 2 * M_PI * _correctIQCutOff / sampleRate;
-    // }
 protected:
     void run() override;
 private:

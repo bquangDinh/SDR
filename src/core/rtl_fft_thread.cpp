@@ -6,6 +6,7 @@
 
 #include "core/spectrum.h"
 #include "core/sdr_settings_manager.h"
+#include "core/telemetry.h"
 
 void RtlFFTThread::pause() {
     std::lock_guard<std::mutex> lk(_m);
@@ -46,13 +47,6 @@ void RtlFFTThread::run() {
 
     const size_t NARROW_MAX_KEEP = 4 * NARROW_FFT_BINS;
 
-    // Telemetry stuff
-    uint32_t totalFullSpectrumTime = 0;
-    uint32_t totalNarrowSpectrumTime = 0;
-    uint32_t fullSpectrumCount = 0, narrowSpectrumCount = 0;
-    uint32_t fullSpectrumDataCount = 0;
-    uint32_t narrowSpectrumDataCount = 0;
-
     // Loop through every frame at 30 FPS
     while (true) {
         {
@@ -66,17 +60,11 @@ void RtlFFTThread::run() {
         }
 
         if (Chunk c = _c->take()) {
-            auto t0 = std::chrono::steady_clock::now();
+            Telemetry::instance().start_recording_FFTWideSpectrumProcessingTime();
 
             fullSpectrum.compute(c->data(), c->size(), fullSpectrumOutput);
 
-            auto t1 = std::chrono::steady_clock::now();
-
-            totalFullSpectrumTime += std::chrono::duration_cast<std::chrono::microseconds>(t1 - t0).count();
-
-            fullSpectrumDataCount += c->size();
-
-            fullSpectrumCount++;
+            Telemetry::instance().stop_recording_FFTWideSpectrumProcessingTime();
 
             emit spectrumReady(QList<double>(fullSpectrumOutput.begin(), fullSpectrumOutput.end()));
         }
@@ -101,17 +89,11 @@ void RtlFFTThread::run() {
         size_t pos = 0;
 
         while (decChain.size() - pos >= N) {
-            auto t0 = std::chrono::steady_clock::now();
+            Telemetry::instance().start_recording_FFTNarrowSpectrumProcessingTime();
 
             narrowSpectrum.compute(decChain.data() + pos, N, narrowSpectrumOutput);
 
-            auto t1 = std::chrono::steady_clock::now();
-
-            totalNarrowSpectrumTime += std::chrono::duration_cast<std::chrono::microseconds>(t1 - t0).count();
-
-            narrowSpectrumDataCount += N;
-
-            narrowSpectrumCount++;
+            Telemetry::instance().stop_recording_FFTNarrowSpectrumProcessingTime();
 
             emit narrowSpectrumReady(QList<double>(narrowSpectrumOutput.begin(), narrowSpectrumOutput.end()));
 
@@ -124,14 +106,6 @@ void RtlFFTThread::run() {
 
         std::this_thread::sleep_until(next);
     }
-
-    double fullSpectrumAvg = static_cast<double>(totalFullSpectrumTime) / fullSpectrumCount;
-    double narrowSpectrumAvg = static_cast<double>(totalNarrowSpectrumTime) / narrowSpectrumCount;
-    double fullSpectrumDataAvg = static_cast<double>(fullSpectrumDataCount) / fullSpectrumCount;
-    double narrowSpectrumDataAvg = static_cast<double>(narrowSpectrumDataCount) / narrowSpectrumCount;
-
-    qDebug() << "Computing full spectrum of " << fullSpectrumDataAvg << " elements took " << fullSpectrumAvg << " us on average";
-    qDebug() << "Computing narrow spectrum of " << narrowSpectrumDataAvg << " elements took " << narrowSpectrumAvg << " us on average";
 }
 
 double RtlFFTThread::compute_spectrum_power(const std::complex<float>* data, size_t n) {
