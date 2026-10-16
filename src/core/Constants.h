@@ -24,6 +24,13 @@ namespace Constants {
         constexpr int DSB = 5;
         constexpr int CW = 6;
         constexpr int RAW = 7;
+        constexpr int NONE = 8;
+    }
+
+    namespace SamplingMode {
+        constexpr int QUADRATURE_SAMPLING = 0;
+        constexpr int DIRECT_SAMPLING_I_BRANCH = 1;
+        constexpr int DIRECT_SAMPLING_Q_BRANCH = 2;
     }
 }
 

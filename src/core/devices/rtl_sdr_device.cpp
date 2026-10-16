@@ -1,25 +1,13 @@
 #include "rtl_sdr_device.h"
-#include <cassert>
-#include <iostream>
 
-int RtlSdrDevice::sdr_init(uint32_t device_index, sdr_config_t init_config) {
+#include <cassert>
+
+#include "core/Constants.h"
+
+int RtlSdrDevice::sdr_init(uint32_t device_index, sdr_config init_config) {
     if (initialized()) return 0;
 
     _config = init_config;
-
-    // std::cout << "Obtaining device information..." << std::endl;
-
-    // // Obtain device information from the driver
-    // if (rtlsdr_get_device_usb_strings(
-    //         device_index,
-    //         _info.manufacture.data(),
-    //         _info.product.data(),
-    //         _info.serial.data()
-    // ) < 0) {
-    //     return -1;
-    // }
-
-    std::cout << "Opening the device with index " << device_index << std::endl;
 
     // Open the device
     if (rtlsdr_open(&handler, device_index) < 0) {
@@ -37,15 +25,11 @@ int RtlSdrDevice::sdr_init(uint32_t device_index, sdr_config_t init_config) {
         return -1;
     }
 
-    std::cout << "Supported RF Gains " << numberRFGains << std::endl;
-
     _supported_rf_gains.resize(numberRFGains);
 
     if (rtlsdr_get_tuner_gains(handler, _supported_rf_gains.data()) < 0) {
         return -1;
     }
-
-    std::cout << "Max is " << _supported_rf_gains[_supported_rf_gains.size() - 1] << std::endl;
 
     // Reset buffer
     if (sdr_reset() < 0) return -1;
@@ -72,8 +56,6 @@ int RtlSdrDevice::sdr_init(uint32_t device_index, sdr_config_t init_config) {
     _initialized = true;
 
     _destroyed = false;
-
-    std::cout << "Initialized" << std::endl;
 
     return 0;
 }
@@ -124,12 +106,8 @@ int RtlSdrDevice::sdr_set_center_freq(uint32_t freq) {
     int rc = rtlsdr_set_center_freq(handler, static_cast<uint32_t>(actual));
 
     if (rc < 0) {
-        std::cout << "Failed to set freq" << std::endl;
-
         return -1;
     }
-
-    std::cout << "Set freq to " << actual << std::endl;
 
     _config.centerFreq = static_cast<uint32_t>(actual);
 
@@ -158,7 +136,6 @@ int RtlSdrDevice::sdr_set_rf_gain(int gain) {
     assert(!_supported_rf_gains.empty() && "the list of supported rf gains is empty");
 
     if (_config.tunerAGC) {
-        std::cout << "Tuner AGC is enabled, cannot set rf manually" << std::endl;
         return -1;
     }
 
@@ -178,15 +155,12 @@ int RtlSdrDevice::sdr_set_rf_gain(int gain) {
 
     int rc = rtlsdr_set_tuner_gain(handler, best);
     if (rc < 0) {
-        std::cout << "Failed to set gain" << std::endl;
         return -1;
     }
 
     _config.gain = gain;
     _config.actualGain = best;
-
-    std::cout << "gain is " << gain << " actual is " << best << std::endl;
-
+    
     return 0;
 }
 
@@ -211,10 +185,11 @@ int RtlSdrDevice::sdr_set_shift_amount(int32_t shift) {
     return 0;
 }
 
-int RtlSdrDevice::sdr_set_sampling_mode(sampling_mode_t mode) {
+int RtlSdrDevice::sdr_set_sampling_mode(int mode) {
     assert(handler != nullptr && "handler is NULL! You may forgot to call sdr_init()");
+    assert(mode == Constants::SamplingMode::QUADRATURE_SAMPLING || mode == Constants::SamplingMode::DIRECT_SAMPLING_I_BRANCH || mode == Constants::SamplingMode::DIRECT_SAMPLING_Q_BRANCH && "Invalid sampling mode");
 
-    int rc = rtlsdr_set_direct_sampling(handler, static_cast<int>(mode));
+    int rc = rtlsdr_set_direct_sampling(handler, mode);
 
     if (rc < 0) return -1;
 

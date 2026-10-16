@@ -1,8 +1,17 @@
 #include "rtl_reader_thread.h"
 
+#include "core/sdr_settings_manager.h"
 #include "core/sdr_device_manager.h"
 #include <QDebug>
 #include <thread>
+
+RtlReaderThread::RtlReaderThread(ChunkQueue* q, LatestChunk* c, QObject* parent) : QThread(parent), _queue(q), _latestChunk(c) {
+    _sampleRateSubId = SdrSettingsManager::instance().on_sample_rate_changed().subscribe([this](const uint32_t& v) { this->on_sample_rate_changed(v); });
+}
+
+RtlReaderThread::~RtlReaderThread() {
+    SdrSettingsManager::instance().on_sample_rate_changed().unsubscribe(_sampleRateSubId);
+}
 
 void RtlReaderThread::pause() {
     std::lock_guard<std::mutex> lk(_m);
@@ -48,6 +57,8 @@ void RtlReaderThread::run() {
 
 void RtlReaderThread::read() {
     SdrDevice* currentDevice = SdrDeviceManager::instance().currentDevice();
+    
+    SdrSettingsManager& settingsManager = SdrSettingsManager::instance();
 
     if (currentDevice == nullptr) {
         qDebug() << "No device selected";
@@ -79,7 +90,7 @@ void RtlReaderThread::read() {
         I = (buf[2 * i]     - 127.5f) / 127.5f;
         Q = (buf[2 * i + 1] - 127.5f) / 127.5f;
 
-        if (_correctIQ) {
+        if (settingsManager.correctIQ()) {
             _muI += _alpha * (I - _muI);
             _muQ += _alpha * (Q - _muQ);
 
@@ -87,7 +98,7 @@ void RtlReaderThread::read() {
             Q -= _muQ;
         }
 
-        if (_invertSpectrum) {
+        if (settingsManager.invertSpectrum()) {
             std::swap(I, Q);
         }
 
@@ -99,4 +110,8 @@ void RtlReaderThread::read() {
     _queue->push(c);
 
     _latestChunk->put(c);
+}
+
+void RtlReaderThread::on_sample_rate_changed(const uint32_t& v) {
+    _alpha = 2 * M_PI * _correctIQCutOff / v;
 }

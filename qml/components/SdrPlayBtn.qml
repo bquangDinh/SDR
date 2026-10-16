@@ -25,6 +25,7 @@ Button {
             width: 14
             height: 14
             visible: !control.playing
+            preferredRendererType: Shape.CurveRenderer
             ShapePath {
                 fillColor: control.iconColor
                 strokeWidth: -1

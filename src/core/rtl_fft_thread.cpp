@@ -4,7 +4,8 @@
 #include <chrono>
 #include <thread>
 
-#include <core/spectrum.h>
+#include "core/spectrum.h"
+#include "core/sdr_settings_manager.h"
 
 void RtlFFTThread::pause() {
     std::lock_guard<std::mutex> lk(_m);
@@ -32,11 +33,9 @@ void RtlFFTThread::resume() {
     _cv.notify_all();
 }
 
-void RtlFFTThread::set_narrow_display_rate(uint32_t rate) {
-    _narrowSampleRate = rate;
-}
-
 void RtlFFTThread::run() {
+    SdrSettingsManager& settingsManager = SdrSettingsManager::instance();
+
     // Setup
     auto next = std::chrono::steady_clock::now();
 
@@ -82,7 +81,7 @@ void RtlFFTThread::run() {
             emit spectrumReady(QList<double>(fullSpectrumOutput.begin(), fullSpectrumOutput.end()));
         }
 
-        if (Chunk c= _decimatedQueue->tryPop()) {
+        if (Chunk c= _decimatedQueue->try_pop()) {
             decChain.insert(decChain.end(), c->begin(), c->end());
 
             double avgPower = compute_spectrum_power(c->data(), c->size());
@@ -90,12 +89,14 @@ void RtlFFTThread::run() {
             emit power(avgPower);
         }
 
-        while (Chunk c = _decimatedQueue->tryPop()) {
+        while (Chunk c = _decimatedQueue->try_pop()) {
             decChain.insert(decChain.end(), c->begin(), c->end());
         }
-
+        
+        const uint32_t bandwidth = settingsManager.bandwidth();
+        const double NARROW_HOP_TIME = (bandwidth == 0 || bandwidth >= 48e3) ? 48e3 / 30 : bandwidth / 30;
         const size_t N   = NARROW_FFT_BINS;
-        const size_t HOP = std::clamp<size_t>(_narrowSampleRate / 30, size_t(1), N);
+        const size_t HOP = std::clamp<size_t>(NARROW_HOP_TIME, size_t(1), N);
 
         size_t pos = 0;
 

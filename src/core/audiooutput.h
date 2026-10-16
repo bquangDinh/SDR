@@ -26,7 +26,7 @@ public:
 
     bool started() const { return this->_started; }
 
-    void setVolume(float volume) { this->_volume = volume; }
+    void set_volume(float volume) { this->_volume = volume; }
 
     void reset();
 private:

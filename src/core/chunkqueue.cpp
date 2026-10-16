@@ -19,7 +19,7 @@ void ChunkQueue::push(Chunk c) {
 }
 
 // Try to pop right away
-Chunk ChunkQueue::tryPop() {
+Chunk ChunkQueue::try_pop() {
     std::lock_guard<std::mutex> lk(_m);
 
     if (_q.empty()) return nullptr;

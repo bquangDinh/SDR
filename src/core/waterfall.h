@@ -46,14 +46,6 @@ public:
 
     void setDirection(QString direction);
 
-    // quint32 fromBin() const { return _fromBin; }
-
-    // void setFromBin(quint32 fromBin);
-
-    // quint32 toBin() const { return _toBin; }
-
-    // void setToBin(quint32 toBin);
-
     bool useNarrow() const { return _useNarrow; }
 
     void setUseNarrow(bool useNarrow);

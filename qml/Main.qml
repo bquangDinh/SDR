@@ -2,6 +2,7 @@ import QtQuick
 import QtQuick.Layouts
 import QtQuick.Controls.Basic
 import QtGraphs
+import QtQuick.Shapes
 
 import sdr_qt
 
@@ -105,34 +106,69 @@ ApplicationWindow {
                     spacing: 20
                     anchors.fill: parent
 
-                    Label {
-                        text: "Settings"
-                        font.bold: true
-                        font.pixelSize: 16
-                        color: "#EBECEE"
+                    // Label {
+                    //     text: "Settings"
+                    //     font.bold: true
+                    //     font.pixelSize: 16
+                    //     color: "#EBECEE"
 
-                        Layout.leftMargin: 16
-                    }
+                    //     Layout.leftMargin: 16
+                    // }
 
-                    Label {
-                        text: "View"
-                        font.bold: true
-                        font.pixelSize: 16
-                        color: "#EBECEE"
-                    }
+                    // Label {
+                    //     text: "View"
+                    //     font.bold: true
+                    //     font.pixelSize: 16
+                    //     color: "#EBECEE"
+                    // }
 
-                    Label {
-                        text: "Tools"
-                        font.bold: true
-                        font.pixelSize: 16
-                        color: "#EBECEE"
-                    }
+                    // Label {
+                    //     text: "Tools"
+                    //     font.bold: true
+                    //     font.pixelSize: 16
+                    //     color: "#EBECEE"
+                    // }
 
-                    Label {
-                        text: "Help"
-                        font.bold: true
-                        font.pixelSize: 16
-                        color: "#EBECEE"
+                    // Label {
+                    //     text: "Help"
+                    //     font.bold: true
+                    //     font.pixelSize: 16
+                    //     color: "#EBECEE"
+                    // }
+
+                    // Rectangle {
+                    //     color: "#EBECEE"
+                    //     Layout.preferredWidth: 2
+                    //     Layout.maximumWidth: 2
+                    //     Layout.preferredHeight: 20
+                    //     Layout.maximumHeight: 20
+                    // }
+
+                    RowLayout {
+                        Layout.fillHeight: true
+                        spacing: 8
+
+                        Label {
+                            text: "Volume"
+                            color: "#EBECEE"
+                            Layout.leftMargin: 10
+                        }
+
+                        SdrSlider {
+                            id: volumeSlider
+                            from: 0
+                            to: 100
+                            stepSize: 1
+                            value: sdr.volume
+                            handleColor: "#EBECEE"
+                            trackColor: "#EBECEE"
+                            onValueChanged: sdr.set_volume(value)
+                        }
+
+                        Label {
+                            text: volumeSlider.value.toString()
+                            color: "#EBECEE"
+                        }
                     }
 
                     Rectangle {
@@ -156,17 +192,74 @@ ApplicationWindow {
                         color: "#EBECEE"
                         secondaryColor: "#4D5B67"
                         value: sdr.centerFreq
-                        onEdited: (newValue) => sdr.setCenterFreq(newValue)
+                        onEdited: (newValue) => sdr.set_center_freq(newValue)
                     }
 
-                    Button {
-                        text: "Up"
-                        onClicked: sdr.setCenterFreq(sdr.centerFreq + 1000000)
-                    }
+                    ColumnLayout {
+                        Layout.fillHeight: true
 
-                    Button {
-                        text: "Down"
-                        onClicked: sdr.setCenterFreq(sdr.centerFreq - 1000000)
+                        Rectangle {
+                            Layout.preferredWidth: 12
+                            Layout.preferredHeight: parent.height * 0.4
+                            radius: 2
+                            color: "#F25A38"
+
+                            Shape {
+                                anchors.centerIn: parent
+                                width: 12
+                                height: 12
+                                preferredRendererType: Shape.CurveRenderer
+                                ShapePath {
+                                    fillColor: freq_up_mouse_area.containsMouse ? Qt.darker("#EBECEE", 0.5) : "#EBECEE"
+                                    strokeWidth: -1
+                                    startX: 6; startY: 0
+                                    PathLine { x: 12; y: 12 }
+                                    PathLine { x: 0;  y: 12 }
+                                    PathLine { x: 6;  y: 0 }
+                                }
+                            }
+
+                            MouseArea {
+                                id: freq_up_mouse_area
+                                anchors.fill: parent
+                                cursorShape: Qt.PointingHandCursor
+                                hoverEnabled: true
+                                onClicked: sdr.set_center_freq(sdr.centerFreq + 1000000)
+                            }
+                        }
+
+                        Rectangle {
+                            Layout.preferredWidth: 12
+                            Layout.preferredHeight: parent.height * 0.4
+                            radius: 2
+                            color: "#F25A38"
+
+                            Shape {
+                                anchors.centerIn: parent
+                                width: 12
+                                height: 12
+                                preferredRendererType: Shape.CurveRenderer
+                                ShapePath {
+                                    fillColor: freq_down_mouse_area.containsMouse ? Qt.darker("#EBECEE", 0.5) : "#EBECEE"
+                                    strokeWidth: -1
+                                    startX: 0; startY: 0
+                                    PathLine { x: 12; y: 0 }
+                                    PathLine { x: 6;  y: 12 }
+                                }
+                            }
+
+                            MouseArea {
+                                id: freq_down_mouse_area
+                                anchors.fill: parent
+                                cursorShape: Qt.PointingHandCursor
+                                hoverEnabled: true
+                                onClicked: {
+                                    if (sdr.centerFreq - 1000000 >= 0) {
+                                        sdr.set_center_freq(sdr.centerFreq - 1000000)
+                                    }
+                                }
+                            }
+                        }
                     }
 
                     Label {
@@ -177,11 +270,6 @@ ApplicationWindow {
                     Item {
                         Layout.fillWidth: true
                     }
-
-                    // Button {
-                    //     text: sdr.running ? "Stop" : "Start"
-                    //     onClicked: sdr.running ? sdr.stop() : sdr.start()
-                    // }
                 }
             }
         }
@@ -252,7 +340,7 @@ ApplicationWindow {
                                         model: sdr.sourceOptions
                                         textRole: "text"
                                         valueRole: "value"
-                                        onActivated: sdr.setSource(currentValue)
+                                        onActivated: sdr.set_source(currentValue)
                                     }
                                 }
 
@@ -279,12 +367,12 @@ ApplicationWindow {
                                             model: sdr.deviceList
                                             textRole: "text"
                                             valueRole: "value"
-                                            onActivated: sdr.setDevice(currentValue)
+                                            onActivated: sdr.set_device(currentValue)
                                         }
 
                                         // Button {
                                         //     text: "Refresh"
-                                        //     onClicked: sdr.refreshDevices()
+                                        //     onClicked: sdr.refresh_devices()
                                         // }
                                     }
                                 }
@@ -309,8 +397,8 @@ ApplicationWindow {
                                         model: sdr.sampleRateOptions
                                         textRole: "text"
                                         valueRole: "value"
-                                        onActivated: sdr.setSampleRate(currentValue)
-                                        currentIndex: 3 // 2_4 MSPS
+                                        onActivated: sdr.set_sample_rate(currentValue)
+                                        currentIndex: 2 // 2_4 MSPS
                                     }
                                 }
 
@@ -334,7 +422,7 @@ ApplicationWindow {
                                         model: sdr.sampleModeOptions
                                         textRole: "text"
                                         valueRole: "value"
-                                        onActivated: sdr.setSamplingMode(currentValue);
+                                        onActivated: sdr.set_sampling_mode(currentValue);
                                         currentIndex: 0
                                     }
                                 }
@@ -349,26 +437,26 @@ ApplicationWindow {
                                     SdrCheckBox {
                                         text: "RTL AGC"
                                         checked: sdr.rtlagc
-                                        onToggled: sdr.setRtlAGC(checked)
+                                        onToggled: sdr.set_rtl_agc(checked)
                                     }
 
                                     SdrCheckBox {
                                         text: "Offset Tuning"
                                         checked: sdr.offsetTuning
-                                        onToggled: sdr.setOffsetTuning(checked)
+                                        onToggled: sdr.set_offset_tuning(checked)
                                     }
 
                                     SdrCheckBox {
                                         id: tunerAGC
                                         text: "Tuner AGC"
                                         checked: sdr.tunerAGC
-                                        onToggled: sdr.setTunerAGC(checked)
+                                        onToggled: sdr.set_tuner_agc(checked)
                                     }
 
                                     SdrCheckBox {
                                         text: "Bias-Tee"
                                         checked: sdr.biasTee
-                                        onToggled: sdr.setBiasTee(checked)
+                                        onToggled: sdr.set_bias_tee(checked)
                                     }
                                 }
 
@@ -406,7 +494,7 @@ ApplicationWindow {
                                         stepSize: 1
                                         enabled: !tunerAGC.checked
                                         value: 0
-                                        onMoved: sdr.setRfGain(value)
+                                        onMoved: sdr.set_rf_gain(value)
                                     }
                                 }
 
@@ -444,7 +532,7 @@ ApplicationWindow {
                                             const correctionPPM = parseInt(text)
 
                                             if (!isNaN(correctionPPM)) {
-                                                sdr.setCorrectionPPM(correctionPPM)
+                                                sdr.set_correction_ppm(correctionPPM)
                                             }
                                         }
                                     }
@@ -459,7 +547,7 @@ ApplicationWindow {
                                         id: shiftCheckbox
                                         text: "Shift"
                                         checked: sdr.shift
-                                        onToggled: sdr.setShift(checked)
+                                        onToggled: sdr.set_shift(checked)
                                     }
 
                                     Item {
@@ -486,7 +574,7 @@ ApplicationWindow {
                                             const shiftAmount = parseInt(text)
 
                                             if (!isNaN(shiftAmount)) {
-                                                sdr.setShiftAmount(shiftAmount)
+                                                sdr.set_shift_amount(shiftAmount)
                                             }
                                         }
                                     }
@@ -501,13 +589,13 @@ ApplicationWindow {
                                     SdrCheckBox {
                                         text: "CIQ"
                                         checked: sdr.correctIQ
-                                        onToggled: sdr.setCorrectIQ(checked)
+                                        onToggled: sdr.set_correct_iq(checked)
                                     }
 
                                     SdrCheckBox {
                                         text: "Invert Spectrum"
                                         checked: sdr.invertSpectrum
-                                        onToggled: sdr.setInvertSpectrum(checked)
+                                        onToggled: sdr.set_invert_spectrum(checked)
                                     }
                                 }
                             }
@@ -550,7 +638,7 @@ ApplicationWindow {
                                         model: sdr.demodModeOptions
                                         textRole: "text"
                                         valueRole: "value"
-                                        onActivated: sdr.setDemodMode(currentValue)
+                                        onActivated: sdr.set_demod_mode(currentValue)
                                         currentIndex: 0
                                     }
                                 }
@@ -589,7 +677,7 @@ ApplicationWindow {
                                             const bandwidth = parseInt(text)
 
                                             if (!isNaN(bandwidth)) {
-                                                sdr.setBandwidth(bandwidth)
+                                                sdr.set_bandwidth(bandwidth)
                                             }
                                         }
                                     }
@@ -604,7 +692,7 @@ ApplicationWindow {
                                         id: squelch
                                         text: "Squelch"
                                         checked: sdr.squelch
-                                        onToggled: sdr.setSquelch(checked)
+                                        onToggled: sdr.set_squelch(checked)
                                     }
 
                                     Item { Layout.fillWidth: true }
@@ -630,7 +718,7 @@ ApplicationWindow {
                                             const squelchAmount = parseInt(text)
 
                                             if (!isNaN(squelchAmount)) {
-                                                sdr.setSquelchAmount(squelchAmount)
+                                                sdr.set_squelch_amount(squelchAmount)
                                             }
                                         }
                                     }
@@ -670,7 +758,7 @@ ApplicationWindow {
                                             const cwShiftAmount = parseInt(text)
 
                                             if (!isNaN(cwShiftAmount)) {
-                                                sdr.setCWShiftAmount(cwShiftAmount)
+                                                sdr.set_cw_shift_amount(cwShiftAmount)
                                             }
                                         }
                                     }
@@ -684,25 +772,25 @@ ApplicationWindow {
                                     SdrCheckBox {
                                         text: "Binaural"
                                         checked: sdr.binaural
-                                        onToggled: sdr.setBinaural(checked)
+                                        onToggled: sdr.set_binaural(checked)
                                     }
 
                                     SdrCheckBox {
                                         text: "Anti-Fading"
                                         checked: sdr.antiFading
-                                        onToggled: sdr.setAntiFading(checked)
+                                        onToggled: sdr.set_anti_fading(checked)
                                     }
 
                                     SdrCheckBox {
                                         text: "Lock Carrier"
                                         checked: sdr.lockCarrier
-                                        onToggled: sdr.setLockCarrier(checked)
+                                        onToggled: sdr.set_lock_carrier(checked)
                                     }
 
                                     SdrCheckBox {
                                         text: "Sticky Lock"
                                         checked: sdr.stickyLock
-                                        onToggled: sdr.setStickyLock(checked)
+                                        onToggled: sdr.set_sticky_lock(checked)
                                     }
                                 }
 
@@ -825,7 +913,7 @@ ApplicationWindow {
                                     offsetHz = Math.max(-limit, Math.min(limit, hz));
                                 }
 
-                                onOffsetHzChanged: sdr.setOffsetFreq(offsetHz)
+                                onOffsetHzChanged: sdr.set_offset_freq(offsetHz)
 
                                 Waterfall {
                                     id: waterfall

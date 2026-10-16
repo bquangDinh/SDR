@@ -664,19 +664,24 @@ RowLayout {
             color: root.color
             Layout.alignment: Qt.AlignVCenter
         }
-    }
 
-    Item {
-        Layout.preferredWidth: 120
-        Layout.fillHeight: true
+        Item {
+            Layout.preferredWidth: 20
+            Layout.fillHeight: true
+        }
 
-        Text {
-            anchors.centerIn: parent
-            text: "(%1)".arg(formatFrequency(root.value, 3, true))
-            font.family: root.font.family
-            font.weight: root.font.weight
-            font.pixelSize: root.font.pixelSize * 0.8     // 80% of the digits' size
-            color: root.secondaryColor
+        Item {
+            Layout.preferredWidth: 120
+            Layout.fillHeight: true
+
+            Text {
+                anchors.centerIn: parent
+                text: "(%1)".arg(formatFrequency(root.value, 3, true))
+                font.family: root.font.family
+                font.weight: root.font.weight
+                font.pixelSize: root.font.pixelSize * 0.8     // 80% of the digits' size
+                color: root.secondaryColor
+            }
         }
     }
 }

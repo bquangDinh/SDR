@@ -13,7 +13,9 @@ class RtlReaderThread : public QThread
 public:
     static constexpr uint32_t BUFFER_SIZE = 65536;
 
-    RtlReaderThread(ChunkQueue* q, LatestChunk* c, QObject* parent) : QThread(parent), _queue(q), _latestChunk(c) {}
+    RtlReaderThread(ChunkQueue* q, LatestChunk* c, QObject* parent);
+
+    ~RtlReaderThread();
 
     void pause();
 
@@ -21,16 +23,16 @@ public:
 
     void resume();
 
-    void setInvertSpectrum(bool invert) { this->_invertSpectrum = invert; }
+    // void setInvertSpectrum(bool invert) { this->_invertSpectrum = invert; }
 
-    void setCorrectIQ(bool correctIQ) { this->_correctIQ = correctIQ; }
+    // void setCorrectIQ(bool correctIQ) { this->_correctIQ = correctIQ; }
 
-    void setSampleRate(uint32_t sampleRate) {
-        this->_sampleRate = sampleRate;
+    // void setSampleRate(uint32_t sampleRate) {
+    //     this->_sampleRate = sampleRate;
 
-        // Compute alpha, for correct IQ
-        _alpha = 2 * M_PI * _correctIQCutOff / sampleRate;
-    }
+    //     // Compute alpha, for correct IQ
+    //     _alpha = 2 * M_PI * _correctIQCutOff / sampleRate;
+    // }
 protected:
     void run() override;
 private:
@@ -47,6 +49,8 @@ private:
     bool _invertSpectrum = false;
     bool _correctIQ = false;
 
+    uint64_t _sampleRateSubId;
+
     // Running sum averages of I, Q
     // use for Correct IQ
     double _alpha, _muI, _muQ;
@@ -54,6 +58,8 @@ private:
     const double _correctIQCutOff = 5; // cutoff at 5 Hz
 
     void read();
+
+    void on_sample_rate_changed(const uint32_t& v);
 };
 
 #endif // RTL_READER_THREAD_H
