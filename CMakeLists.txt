@@ -88,7 +88,12 @@ qt_add_qml_module(appsdr_qt
         SOURCES src/core/demodulators/rawdemod.h src/core/demodulators/rawdemod.cpp
         SOURCES src/core/fps_counter.h
         SOURCES src/core/squelcher.h src/core/squelcher.cpp
+        SOURCES src/core/sdr_settings_manager.h src/core/sdr_settings_manager.cpp
+        SOURCES src/core/telemetry.h src/core/telemetry.cpp
 )
+
+set_source_files_properties(src/core/fast_decimator.cpp
+    PROPERTIES COMPILE_OPTIONS "-ffast-math;-fopt-info-vec-optimized")
 
 # Qt for iOS sets MACOSX_BUNDLE_GUI_IDENTIFIER automatically since Qt 6.1.
 # If you are developing for iOS or macOS you should consider setting an

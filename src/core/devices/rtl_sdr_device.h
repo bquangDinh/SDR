@@ -27,7 +27,7 @@ public:
         return rtlsdr_get_device_name(index);
     }
 
-    int sdr_init(uint32_t device_index, sdr_config_t init_config) override;
+    int sdr_init(uint32_t device_index, sdr_config init_config) override;
 
     int sdr_reset() override;
 
@@ -45,7 +45,7 @@ public:
 
     int sdr_set_shift_amount(int32_t shift) override;
 
-    int sdr_set_sampling_mode(sampling_mode_t mode) override;
+    int sdr_set_sampling_mode(int mode) override;
 
     int sdr_set_rtl_agc(bool val) override;
 

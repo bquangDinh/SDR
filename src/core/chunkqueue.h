@@ -20,7 +20,7 @@ public:
 
     Chunk pop(std::chrono::milliseconds timeout);
 
-    Chunk tryPop();
+    Chunk try_pop();
 
     void close();
 

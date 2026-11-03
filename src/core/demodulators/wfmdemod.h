@@ -34,8 +34,8 @@ private:
 
     float _x = 0.0f, _a0 = 0.0f, _demmph = 0.0f;
 
-    std::vector<std::complex<float>> _iq, _o2, _o3;
-    std::vector<float> _o1;
+    std::vector<std::complex<float>> _o1, _o3;
+    std::vector<float> _o2;
 };
 
 #endif // WFMDEMOD_H

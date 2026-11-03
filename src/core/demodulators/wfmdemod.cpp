@@ -1,6 +1,7 @@
 #include "wfmdemod.h"
 
 #include <QDebug>
+#include "core/telemetry.h"
 
 void WfmDemod::process(const std::complex<float>* in, size_t n, std::vector<float>& out) {
     if (_dirty) {
@@ -12,30 +13,33 @@ void WfmDemod::process(const std::complex<float>* in, size_t n, std::vector<floa
         }
     }
 
-    _iq.clear();
+    Telemetry::instance().start_recording_WFMdemodProcessingTime();
+
+    // Low pass to 240 kHz - complex
     _o1.clear();
-    _o2.clear();
-    _o3.clear();
 
     // Low-pass + Decimate at d steps
-    _dec1->process(in, n, _iq);
+    _dec1->process(in, n, _o1);
 
-    if (!_squelch || (_squelch && !_squelcher.shouldSquelch(_o2.data(), _o2.size()))) {
-        _fm->process(_iq.data(), _iq.size(), _o1);
-    } else {
-        out.clear();
+    process_narrow_fft(_o1.data(), _o1.size(), 100e3);
 
-        return;
-    }
+    if (_squelch && !_squelcher.shouldSquelch(_o1.data(), _o1.size())) return;
 
-    // FM
-    _fm->process(_iq.data(), _iq.size(), _o1);
+    // FM demodulation - convert complex baseband to float audio
+    // 240 kHz - real numbers
+    _o2.clear();
+
+    _fm->process(_o1.data(), _o1.size(), _o2);
+
+    _o1.clear();
 
     // Convert float to std::complex<float>
-    _o2.assign(_o1.begin(), _o1.end());
+    _o1.assign(_o2.begin(), _o2.end());
 
-    // Low-pass + Decimate at 5
-    _dec2->process(_o2.data(), _o2.size(), _o3);
+    _o3.clear();
+
+    // Low-pass + Decimate
+    _dec2->process(_o1.data(), _o1.size(), _o3);
 
     out.resize(_o3.size());
 
@@ -47,7 +51,7 @@ void WfmDemod::process(const std::complex<float>* in, size_t n, std::vector<floa
         sample = _demmph;
     }
 
-    process_narrow_fft(_o3.data(), _o3.size(), PASSBAND);
+    Telemetry::instance().stop_recording_WFMdemodProcessingTime();
 }
 
 void WfmDemod::reset() {
@@ -81,12 +85,15 @@ bool WfmDemod::init() {
     size_t d1 = _inSampleRate / midrate;
     size_t d2 = midrate / _outSampleRate;
 
-    uint32_t passband = std::abs(_bandwidth) > 0 ? _bandwidth / 2 : PASSBAND;
+    uint32_t passband = 100e3;
     uint32_t stopband = passband + passband * 0.2; // 20% more
 
-    std::vector<float> taps1 = Signal::Utils::make_lowpass(_inSampleRate, passband, midrate - stopband);
+    uint32_t monoPassband = 15e3;
+    uint32_t monoStopband = monoPassband + 3e3;
 
-    std::vector<float> taps2 = Signal::Utils::make_lowpass(midrate, passband, stopband);
+    std::vector<float> taps1 = Signal::Utils::make_lowpass(_inSampleRate, passband, stopband);
+
+    std::vector<float> taps2 = Signal::Utils::make_lowpass(midrate, monoPassband, monoStopband);
 
     _dec1 = std::make_unique<FastDecimator>(taps1, d1);
 

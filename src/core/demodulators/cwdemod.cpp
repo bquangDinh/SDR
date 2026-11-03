@@ -82,9 +82,9 @@ bool CwDemod::init() {
 
     _mixer = std::make_unique<Mixer>();
 
-    _mixer->setOffsetFreq(this->_cwShift);
+    _mixer->set_offset_freq(this->_cwShift);
 
-    _mixer->setSampleRate(midrate);
+    _mixer->set_sample_rate(midrate);
 
     return true;
 }

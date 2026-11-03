@@ -3,6 +3,7 @@
 
 #include <complex>
 #include <core/Constants.h>
+#include <vector>
 
 class Mixer
 {
@@ -13,9 +14,9 @@ public:
 
     uint32_t sampleRate() const { return this->_sampleRate; }
 
-    void setOffsetFreq(double offsetFreq);
+    void set_offset_freq(double offsetFreq);
 
-    void setSampleRate(uint32_t sampleRate);
+    void set_sample_rate(uint32_t sampleRate);
 
     void process(const std::complex<float>* data, size_t size, std::vector<std::complex<float>>& out);
 

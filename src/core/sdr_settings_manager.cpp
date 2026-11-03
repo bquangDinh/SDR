@@ -1,0 +1,1 @@
+#include "sdr_settings_manager.h"

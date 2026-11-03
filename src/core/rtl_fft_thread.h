@@ -25,8 +25,6 @@ public:
     void stop();
 
     void resume();
-
-    void set_narrow_display_rate(uint32_t rate);
 signals:
     void spectrumReady(QList<double> data);
     void narrowSpectrumReady(QList<double> data);
@@ -45,8 +43,6 @@ private:
 
     std::vector<float> fullSpectrumOutput;
     std::vector<float> narrowSpectrumOutput;
-
-    uint32_t _narrowSampleRate = 0;
 
     void make_blackman_window();
 

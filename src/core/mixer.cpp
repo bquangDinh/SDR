@@ -4,7 +4,7 @@
 
 Mixer::Mixer() {}
 
-void Mixer::setOffsetFreq(double offsetFreq) {
+void Mixer::set_offset_freq(double offsetFreq) {
     if (_offsetFreq == offsetFreq) return;
 
     _offsetFreq = offsetFreq;
@@ -12,7 +12,7 @@ void Mixer::setOffsetFreq(double offsetFreq) {
     _dirty = true;
 }
 
-void Mixer::setSampleRate(uint32_t sampleRate) {
+void Mixer::set_sample_rate(uint32_t sampleRate) {
     if (_sampleRate == sampleRate) return;
 
     _sampleRate = sampleRate;

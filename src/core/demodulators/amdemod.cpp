@@ -1,6 +1,7 @@
 #include "amdemod.h"
 
 #include <QDebug>
+#include "core/telemetry.h"
 
 void AmDemod::process(const std::complex<float>* in, size_t n, std::vector<float>& out) {
     if (_dirty) {
@@ -11,6 +12,8 @@ void AmDemod::process(const std::complex<float>* in, size_t n, std::vector<float
             return;
         }
     }
+
+    Telemetry::instance().start_recording_AMdemodProcessingTime();
 
     _o1.clear();
 
@@ -34,6 +37,8 @@ void AmDemod::process(const std::complex<float>* in, size_t n, std::vector<float
     }
 
     process_narrow_fft(_o2.data(), _o2.size(), PASSBAND);
+
+    Telemetry::instance().stop_recording_AMdemodProcessingTime();
 }
 
 void AmDemod::reset() {
