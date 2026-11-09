@@ -11,11 +11,15 @@
 class RtlReaderThread : public QThread
 {
 public:
-    static constexpr uint32_t BUFFER_SIZE = 8192;
+    static constexpr uint32_t BUFFER_SIZE = 16384;
 
-    RtlReaderThread(ChunkQueue* q, LatestChunk* c, QObject* parent);
+    RtlReaderThread(QObject* parent);
 
     ~RtlReaderThread();
+
+    void add_queue(ChunkQueue* q);
+
+    void add_latest_chunk(LatestChunk* c);
 
     void pause();
 
@@ -27,6 +31,9 @@ protected:
 private:
     ChunkQueue* _queue;
     LatestChunk* _latestChunk;
+
+    std::vector<ChunkQueue*> _queues;
+    std::vector<LatestChunk*> _chunks;
 
     uint8_t buf[RtlReaderThread::BUFFER_SIZE];
 

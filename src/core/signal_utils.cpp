@@ -1,5 +1,5 @@
-#include "core/Signal.h"
-
+#include "core/signal_utils.h"
+#include <numeric>
 #include <math.h>
 #include "cassert"
 
@@ -16,6 +16,82 @@ std::vector<float> Signal::Utils::make_lowpass(uint32_t sampleRate, uint32_t pas
     Signal::Filters::firwin(taps, numTaps, (stopband + passband) / 2.0f, window, sampleRate);
 
     return taps;
+}
+
+void Signal::Utils::resample_cc_f(const std::complex<float>* data, size_t size, uint32_t up, uint32_t down, uint32_t fs, std::vector<std::complex<float>>& out) {
+    assert(up > 0 && "Upsampling factor must be greater than 0");
+    assert(down > 0 && "Downsampling factor must be greater than 0");
+
+    if (size == 0) {
+        out.clear();
+        return;
+    }
+
+    uint32_t gcd = std::gcd(up, down);
+
+    up /= gcd;
+    down /= gcd;
+
+    // Before I can pick every down-th sample, I need to apply lowpass to get rid of frequency components for two reasons:
+    // 1. To remove images of when I insert zeros during upsampling
+    // 2. To prevent aliasing when downsampling
+    // The cutoff is the lower Nyquist of the up or down rate
+    // I can't pick the higher rate because aliasing would occur during downsampling
+    float cutoff = (fs * up) / (2.0f * std::max(up, down));
+
+    std::vector<float> taps = Signal::Utils::make_lowpass(fs * up, 0, cutoff);
+
+    // Multiply taps by up to compensate for the gain introduced by upsampling
+    for (float& tap : taps) {
+        tap *= up;
+    }
+
+    // Inserting up - 1 zeros between samples
+    // The sample rate now becomes fs * up
+    size_t newSize = size * up;
+
+    std::vector<std::complex<float>> upsampled(newSize, std::complex<float>(0.0f, 0.0f));
+
+    for (size_t i = 0; i < size; ++i) {
+        upsampled[i * up] = data[i];
+    }
+
+    // Apply the lowpass filter to the upsampled signal
+    std::vector<std::complex<float>> filtered(upsampled.size(), std::complex<float>(0.0f, 0.0f));
+
+    for (size_t n = 0; n < upsampled.size(); ++n) {
+        for (size_t k = 0; k < taps.size(); ++k) {
+            if (n >= k) {
+                filtered[n] += taps[k] * upsampled[n - k];
+            }
+        }
+    }
+
+    // Downsample the filtered signal
+    out.resize((filtered.size() + down - 1) / down);
+
+    for (size_t i = 0; i < out.size(); ++i) {
+        out[i] = filtered[i * down];
+    }
+}
+
+void Signal::Utils::convolute_cc_f(const std::complex<float>* data, size_t size, const float* taps, size_t numTaps, std::vector<std::complex<float>>& out) {
+    assert(numTaps > 0 && "numTaps must be larger than 0");
+
+    if (size == 0) {
+        out.clear();
+        return;
+    }
+
+    out.resize(size + numTaps - 1, std::complex<float>(0.0f, 0.0f));
+
+    for (size_t n = 0; n < out.size(); ++n) {
+        for (size_t k = 0; k < numTaps; ++k) {
+            if (n >= k && (n - k) < size) {
+                out[n] += taps[k] * data[n - k];
+            }
+        }
+    }
 }
 
 kaiser_ret_params Signal::Filters::kaisercord(float ripple, float width, uint32_t sampleRate) {

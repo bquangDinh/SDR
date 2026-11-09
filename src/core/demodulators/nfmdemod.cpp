@@ -1,6 +1,6 @@
 #include "nfmdemod.h"
 
-#include "core/Signal.h"
+#include "core/signal_utils.h"
 #include "core/telemetry.h"
 
 #include <QDebug>

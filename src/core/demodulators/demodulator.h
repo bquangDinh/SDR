@@ -4,6 +4,7 @@
 #include <complex>
 #include <functional>
 #include "core/squelcher.h"
+#include <stdint.h>
 
 class Demodulator
 {

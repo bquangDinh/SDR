@@ -3,6 +3,12 @@
 #include <QtAssert>
 #include "core/telemetry.h"
 
+void SdrBackend::radioTextReady(const std::string& radioText) {
+    _radioText = QString::fromStdString(radioText);
+    
+    emit radioTextChanged();
+}
+
 Q_INVOKABLE void SdrBackend::set_source(int source) {
     Q_ASSERT_X(source >= 0, "SdrBackend::setSource", "Invalid source index!");
 
@@ -99,7 +105,21 @@ Q_INVOKABLE void SdrBackend::set_center_freq(quint32 freq) {
 
     _sdr_settings_manager.set_center_freq(freq);
 
+    // Find the service band for the current center frequency
+    const auto& bands = Constants::ServiceBand::BANDS;
+
+    _serviceBand.clear();
+
+    for (const auto& band : bands) {
+        if (freq >= band.lower_freq && freq <= band.upper_freq) {
+            _serviceBand = QString::fromUtf8(band.name);
+            break;
+        }
+    }
+
     update_frequency_range();
+
+    emit serviceBandChanged();
 
     emit centerFreqChanged();
 }
@@ -346,7 +366,23 @@ Q_INVOKABLE void SdrBackend::set_offset_freq(double offset) {
 
     _sdr_settings_manager.set_offset_freq(offset);
 
+    // Update the service band based on the new offset frequency
+    uint32_t freq = _sdr_settings_manager.centerFreq() + offset;
+
+    const auto& bands = Constants::ServiceBand::BANDS;
+
+    _serviceBand.clear();
+
+    for (const auto& band : bands) {
+        if (freq >= band.lower_freq && freq <= band.upper_freq) {
+            _serviceBand = QString::fromUtf8(band.name);
+            break;
+        }
+    }
+
     emit offsetFreqChanged();
+
+    emit serviceBandChanged();
 }
 
 Q_INVOKABLE void SdrBackend::set_volume(int volume) {
@@ -377,6 +413,8 @@ Q_INVOKABLE void SdrBackend::start() {
 
         _rtlAudioThread->start();
 
+        _rtlRDSThread->start();
+
         _rtlReaderThread->start();
 
         _threadsStart = true;
@@ -384,6 +422,8 @@ Q_INVOKABLE void SdrBackend::start() {
         _rtlFFTThread->resume();
 
         _rtlAudioThread->resume();
+
+        _rtlRDSThread->resume();
 
         _rtlReaderThread->resume();
     }
@@ -403,6 +443,8 @@ Q_INVOKABLE void SdrBackend::stop() {
 
     _rtlAudioThread->pause();
 
+    _rtlRDSThread->pause();
+
     _rtlReaderThread->pause();
 
     // SdrDeviceManager::instance().destroy_current_device();
@@ -417,8 +459,6 @@ Q_INVOKABLE void SdrBackend::stop() {
 }
 
 void SdrBackend::update_frequency_range() {
-
-
     // Do the arithmetic in signed 64-bit to avoid uint32_t underflow
     qint64 half = static_cast<qint64>(_sdr_settings_manager.sampleRate()) / 2;
     qint64 minFreqSigned = static_cast<qint64>(_sdr_settings_manager.centerFreq()) - half;

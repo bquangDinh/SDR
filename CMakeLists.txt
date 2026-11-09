@@ -68,8 +68,8 @@ qt_add_qml_module(appsdr_qt
         src/core/rtl_fft_thread.cpp
         src/core/spectrum.h
         src/core/spectrum.cpp
-        src/core/Signal.h
-        src/core/Signal.cpp
+        src/core/signal_utils.h
+        src/core/signal_utils.cpp
     RESOURCES
         fonts/Figtree-VariableFont_wght.ttf
         SOURCES
@@ -90,6 +90,7 @@ qt_add_qml_module(appsdr_qt
         SOURCES src/core/squelcher.h src/core/squelcher.cpp
         SOURCES src/core/sdr_settings_manager.h src/core/sdr_settings_manager.cpp
         SOURCES src/core/telemetry.h src/core/telemetry.cpp
+        SOURCES src/core/rtl_rds_thread.h src/core/rtl_rds_thread.cpp
 )
 
 set_source_files_properties(src/core/fast_decimator.cpp

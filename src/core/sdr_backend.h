@@ -6,6 +6,9 @@
 #include <QString>
 #include <QByteArray>
 #include <QList>
+#include <QPointF>
+#include <complex>
+#include <vector>
 #include <QDebug>
 #include <QVariant>
 
@@ -14,6 +17,7 @@
 #include "core/rtl_reader_thread.h"
 #include "core/rtl_audio_thread.h"
 #include "core/rtl_fft_thread.h"
+#include "core/rtl_rds_thread.h"
 #include "core/sdr_settings_manager.h"
 
 struct frequency_scale_unit {
@@ -97,6 +101,8 @@ class SdrBackend : public QObject {
     Q_PROPERTY(bool stickyLock READ stickyLock WRITE set_sticky_lock NOTIFY stickyLockChanged)
     Q_PROPERTY(quint32 freqScale READ freqScale NOTIFY freqScaleChanged)
     Q_PROPERTY(int volume READ volume WRITE set_volume NOTIFY volumeChanged)
+    Q_PROPERTY(QString radioText READ radioText NOTIFY radioTextChanged)
+    Q_PROPERTY(QString serviceBand READ serviceBand NOTIFY serviceBandChanged)
 public:
     QVariantList sourceOptions() const {
         static const QVariantList options = {
@@ -146,16 +152,36 @@ public:
 
     explicit SdrBackend(QObject *parent = nullptr) : QObject(parent) {
         _chunkQueue = new ChunkQueue(20);
+        _rdsChunkQueue = new ChunkQueue(20);
         _latestChunk = new LatestChunk();
         _decimatedChunkQueue = new ChunkQueue(20);
 
-        _rtlReaderThread = new RtlReaderThread(_chunkQueue, _latestChunk, this);
+        _rtlReaderThread = new RtlReaderThread(this);
+
+        _rtlReaderThread->add_queue(_chunkQueue);
+        _rtlReaderThread->add_queue(_rdsChunkQueue);
+        _rtlReaderThread->add_latest_chunk(_latestChunk);
+
         _rtlAudioThread = new RtlAudioThread(_chunkQueue, _decimatedChunkQueue, this);
         _rtlFFTThread = new RtlFFTThread(_latestChunk, _decimatedChunkQueue, this);
+        _rtlRDSThread = new RtlRDSThread(_rdsChunkQueue, this);
 
         connect(_rtlFFTThread, &RtlFFTThread::spectrumReady, this, &SdrBackend::spectrum);
         connect(_rtlFFTThread, &RtlFFTThread::narrowSpectrumReady, this, &SdrBackend::narrowSpectrum);
         connect(_rtlFFTThread, &RtlFFTThread::power, this, &SdrBackend::power);
+        connect(_rtlRDSThread, &RtlRDSThread::radioTextUpdated, this, &SdrBackend::radioTextReady);
+
+        connect(_rtlRDSThread, &RtlRDSThread::IQUpdated, this, [this](const std::vector<std::complex<float>>& iq) {
+            QList<QPointF> points;
+
+            points.reserve(static_cast<qsizetype>(iq.size()));
+
+            for (const auto& s : iq) points.append(QPointF(s.real(), s.imag()));
+            
+            emit iqUpdated(points);
+        });
+
+        connect(_rtlRDSThread, &RtlRDSThread::rdsSpectrumUpdated, this, &SdrBackend::rdsSpectrumUpdated);
 
         init();
     }
@@ -170,6 +196,8 @@ public:
         // TODO: should add close to latestchunk?
         _chunkQueue->close(); // close queue and wake the audio thread
 
+        _rdsChunkQueue->close();
+
         // Stop consumer
         if (_rtlAudioThread) {
             _rtlAudioThread->stop();
@@ -179,6 +207,11 @@ public:
         if (_rtlFFTThread) {
             _rtlFFTThread->stop();
             _rtlFFTThread->wait();
+        }
+
+        if (_rtlRDSThread) {
+            _rtlRDSThread->stop();
+            _rtlRDSThread->wait();
         }
     }
 
@@ -246,6 +279,12 @@ public:
 
     int volume() const { return _sdr_settings_manager.volume(); }
 
+    QString radioText() const { return _radioText; }
+
+    void radioTextReady(const std::string& radioText);
+
+    QString serviceBand() const { return _serviceBand; }
+
     Q_INVOKABLE void set_source(int source);
 
     Q_INVOKABLE void set_device(int deviceIndex);
@@ -309,6 +348,7 @@ signals:
     void centerFreqChanged();
     void frequencyRangeChanged();
     void rfGainChanged();
+    void radioTextChanged();
     void correctionPPMChanged();
     void shiftAmountChanged();
     void samplingModeChanged();
@@ -318,10 +358,13 @@ signals:
     void biasTeeChanged();
     void shiftChanged();
     void correctIQChanged();
+    void serviceBandChanged();
     void invertSpectrumChanged();
     void errorOccurred(QString message);
     void spectrum(QList<double> bins);
     void narrowSpectrum(QList<double> bins);
+    void rdsSpectrumUpdated(QList<double> spectrum);
+    void iqUpdated(QList<QPointF> iq);
     void power(double power);
     void demodModeChanged();
     void bandwidthChanged();
@@ -338,15 +381,19 @@ signals:
     void offsetFreqChanged();
 private:
     ChunkQueue* _chunkQueue = nullptr;
+    ChunkQueue* _rdsChunkQueue = nullptr;
     LatestChunk* _latestChunk = nullptr;
     ChunkQueue* _decimatedChunkQueue = nullptr;
 
     RtlReaderThread* _rtlReaderThread = nullptr;
     RtlAudioThread* _rtlAudioThread = nullptr;
     RtlFFTThread* _rtlFFTThread = nullptr;
+    RtlRDSThread* _rtlRDSThread = nullptr;
 
     bool _running = false;
     bool _threadsStart = false;
+    QString _radioText;
+    QString _serviceBand;
 
     const std::vector<frequency_scale_unit> frequency_scale_units = {
         { 1, "Hz" },

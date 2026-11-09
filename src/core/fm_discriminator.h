@@ -3,6 +3,7 @@
 
 #include <complex>
 #include <vector>
+#include <stdint.h>
 
 class FmDiscriminator
 {

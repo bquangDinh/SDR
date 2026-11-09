@@ -2,6 +2,7 @@
 
 #include <QDebug>
 #include "core/telemetry.h"
+#include "core/signal_utils.h"
 
 void AmDemod::process(const std::complex<float>* in, size_t n, std::vector<float>& out) {
     if (_dirty) {

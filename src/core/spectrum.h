@@ -3,12 +3,16 @@
 
 #include <complex>
 #include <fftw3.h>
+#include <mutex>
 #include <vector>
 
 class Spectrum
 {
 public:
     Spectrum(size_t bins) : _bins(bins), avg(bins, 0.0f), window(bins, 0.0f) {
+        // FFTW planning/destruction is not thread-safe; serialize across all Spectrum instances
+        std::lock_guard<std::mutex> lock(plannerMutex());
+
         in = fftwf_alloc_complex(bins);
         out = fftwf_alloc_complex(bins);
 
@@ -18,9 +22,16 @@ public:
     }
 
     ~Spectrum() {
+        std::lock_guard<std::mutex> lock(plannerMutex());
+
         fftwf_destroy_plan(plan);
         fftwf_free(in);
         fftwf_free(out);
+    }
+
+    static std::mutex& plannerMutex() {
+        static std::mutex m;
+        return m;
     }
 
     void compute(const std::complex<float>* data, size_t n, std::vector<float>& out);

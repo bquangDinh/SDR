@@ -15,7 +15,7 @@ bool Squelcher::shouldSquelch(const std::complex<float>* data, size_t n) {
 
     avg = std::abs(10.0 * std::log10(avg));
 
-    qDebug() << "Average power is: " << avg << " vs " << _squelch;
+    // qDebug() << "Average power is: " << avg << " vs " << _squelch;
 
     if (avg > _squelch) return true;
 

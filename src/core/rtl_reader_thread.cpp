@@ -6,12 +6,20 @@
 #include <thread>
 #include "core/telemetry.h"
 
-RtlReaderThread::RtlReaderThread(ChunkQueue* q, LatestChunk* c, QObject* parent) : QThread(parent), _queue(q), _latestChunk(c) {
+RtlReaderThread::RtlReaderThread(QObject* parent) : QThread(parent) {
     _sampleRateSubId = SdrSettingsManager::instance().on_sample_rate_changed().subscribe([this](const uint32_t& v) { this->on_sample_rate_changed(v); });
 }
 
 RtlReaderThread::~RtlReaderThread() {
     SdrSettingsManager::instance().on_sample_rate_changed().unsubscribe(_sampleRateSubId);
+}
+
+void RtlReaderThread::add_queue(ChunkQueue* q) {
+    _queues.push_back(q);
+}
+
+void RtlReaderThread::add_latest_chunk(LatestChunk* c) {
+    _chunks.push_back(c);
 }
 
 void RtlReaderThread::pause() {
@@ -54,6 +62,10 @@ void RtlReaderThread::run() {
 
         read();
     }
+
+    _queues.clear();
+
+    _chunks.clear();
 }
 
 void RtlReaderThread::read() {
@@ -110,9 +122,13 @@ void RtlReaderThread::read() {
 
     Chunk c = chunk;
 
-    _queue->push(c);
+    for (auto q : _queues) {
+        q->push(c);
+    }
 
-    _latestChunk->put(c);
+    for (auto _ch : _chunks) {
+        _ch->put(c);
+    }
 
     Telemetry::instance().stop_recording_readerThreadProcessingTime();
 }

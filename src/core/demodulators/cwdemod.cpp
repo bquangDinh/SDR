@@ -1,7 +1,7 @@
 #include "cwdemod.h"
 
 #include <QDebug>
-#include "core/Signal.h"
+#include "core/signal_utils.h"
 
 void CwDemod::process(const std::complex<float>* in, size_t n, std::vector<float>& out) {
     if (_dirty) {
