@@ -1,6 +1,8 @@
 #include "fast_decimator.h"
 
 void FastDecimator::process(const std::complex<float>* in, size_t n, std::vector<std::complex<float>>& out) {
+    out.clear();
+    
     const size_t L = r_taps.size();
     const size_t H = L - 1; // size of history
 

@@ -3,6 +3,8 @@
 void FmDiscriminator::process(const std::complex<float>* data, size_t size, std::vector<float>& out) {
     if (size == 0) return;
 
+    out.clear();
+    
     out.resize(size);
 
     if (_hasLastSample) {

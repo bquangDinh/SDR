@@ -19,6 +19,7 @@
 #include "core/rtl_fft_thread.h"
 #include "core/rtl_rds_thread.h"
 #include "core/sdr_settings_manager.h"
+#include "core/core.h"
 
 struct frequency_scale_unit {
     double scale;
@@ -169,7 +170,7 @@ public:
         connect(_rtlFFTThread, &RtlFFTThread::spectrumReady, this, &SdrBackend::spectrum);
         connect(_rtlFFTThread, &RtlFFTThread::narrowSpectrumReady, this, &SdrBackend::narrowSpectrum);
         connect(_rtlFFTThread, &RtlFFTThread::power, this, &SdrBackend::power);
-        connect(_rtlRDSThread, &RtlRDSThread::radioTextUpdated, this, &SdrBackend::radioTextReady);
+        connect(_rtlRDSThread, &RtlRDSThread::rdsInfoUpdated, this, &SdrBackend::rdsInfoUpdated);
 
         connect(_rtlRDSThread, &RtlRDSThread::IQUpdated, this, [this](const std::vector<std::complex<float>>& iq) {
             QList<QPointF> points;
@@ -279,9 +280,9 @@ public:
 
     int volume() const { return _sdr_settings_manager.volume(); }
 
-    QString radioText() const { return _radioText; }
+    QString radioText() const { return QString::fromStdString(_rdsInfo.radioText); }
 
-    void radioTextReady(const std::string& radioText);
+    void rdsInfoUpdated(const Core::RDS::RDSInfo& rdsInfo);
 
     QString serviceBand() const { return _serviceBand; }
 
@@ -392,7 +393,16 @@ private:
 
     bool _running = false;
     bool _threadsStart = false;
-    QString _radioText;
+
+    Core::RDS::RDSInfo _rdsInfo = {
+        .locale = Core::RDS::RDSLocale::USA,
+        .piProgramRefNumber = 0,
+        .groupType = 0,
+        .radioText = "",
+        .coverageArea = "",
+        .pty = ""
+    };
+
     QString _serviceBand;
 
     const std::vector<frequency_scale_unit> frequency_scale_units = {

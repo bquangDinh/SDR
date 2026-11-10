@@ -91,6 +91,8 @@ qt_add_qml_module(appsdr_qt
         SOURCES src/core/sdr_settings_manager.h src/core/sdr_settings_manager.cpp
         SOURCES src/core/telemetry.h src/core/telemetry.cpp
         SOURCES src/core/rtl_rds_thread.h src/core/rtl_rds_thread.cpp
+        SOURCES src/core/core.h
+        SOURCES src/core/core.cpp
 )
 
 set_source_files_properties(src/core/fast_decimator.cpp

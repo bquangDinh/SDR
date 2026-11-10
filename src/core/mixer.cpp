@@ -33,6 +33,8 @@ void Mixer::process(const std::complex<float>* data, size_t size, std::vector<st
         _dirty = false;
     }
 
+    out.clear();
+    
     out.resize(size);
 
     for (size_t i = 0; i < size; ++i) {

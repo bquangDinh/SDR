@@ -3,8 +3,16 @@
 #include <QtAssert>
 #include "core/telemetry.h"
 
-void SdrBackend::radioTextReady(const std::string& radioText) {
-    _radioText = QString::fromStdString(radioText);
+void SdrBackend::rdsInfoUpdated(const Core::RDS::RDSInfo& rdsInfo) {
+    _rdsInfo.locale = rdsInfo.locale;
+    _rdsInfo.piProgramRefNumber = rdsInfo.piProgramRefNumber;
+    strncpy(_rdsInfo.radioText, rdsInfo.radioText, sizeof(_rdsInfo.radioText));
+    _rdsInfo.radioText[sizeof(_rdsInfo.radioText) - 1] = '\0'; // Ensure null-termination
+    _rdsInfo.groupType = rdsInfo.groupType;
+    strncpy(_rdsInfo.pty, rdsInfo.pty, sizeof(_rdsInfo.pty));
+    _rdsInfo.pty[sizeof(_rdsInfo.pty) - 1] = '\0'; // Ensure null-termination
+    strncpy(_rdsInfo.coverageArea, rdsInfo.coverageArea, sizeof(_rdsInfo.coverageArea));
+    _rdsInfo.coverageArea[sizeof(_rdsInfo.coverageArea) - 1] = '\0'; // Ensure null-termination
     
     emit radioTextChanged();
 }
